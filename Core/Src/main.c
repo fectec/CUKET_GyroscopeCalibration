@@ -40,6 +40,12 @@
 #define FLASH_READ_DATA     0x03
 
 #define FLASH_TARGET_ADDRESS 0x000000
+
+#define L3G4200D_ADDR       (0x69 << 1)
+#define L3G4200D_WHO_AM_I   0x0F
+#define L3G4200D_CTRL_REG1  0x20
+#define L3G4200D_CTRL_REG4  0x23
+#define L3G4200D_OUT_X_L    0x28
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -203,8 +209,6 @@ void Test_WriteEnable_Status(void) {
     Send_String(msg);
 }
 
-
-
 void Flash_WriteByte(uint32_t address, uint8_t data) {
     Flash_WriteEnable();
 
@@ -230,6 +234,52 @@ void Flash_WriteByte(uint32_t address, uint8_t data) {
 
     Flash_WaitForWriteEnd();
 }
+
+uint8_t I2C_ReadByte(uint8_t reg)
+
+{
+    uint8_t data;
+    HAL_I2C_Mem_Read(&hi2c1, L3G4200D_ADDR, reg, I2C_MEMADD_SIZE_8BIT, &data, 1, 100);
+    return data;
+}
+
+void I2C_WriteByte(uint8_t reg, uint8_t value)
+{
+    HAL_I2C_Mem_Write(&hi2c1, L3G4200D_ADDR, reg, I2C_MEMADD_SIZE_8BIT, &value, 1, 100);
+}
+
+void UART_Print(char *msg)
+{
+    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 100);
+}
+
+void L3G4200D_Init(void)
+{
+    uint8_t who_am_i = I2C_ReadByte(L3G4200D_WHO_AM_I);
+
+    if (who_am_i != 0xD3) {
+        UART_Print("L3G4200D not found! WHO_AM_I failed.\r\n");
+        Error_Handler();
+    }
+    else
+    {
+        UART_Print("L3G4200D detected successfully.\r\n");
+    }
+
+    I2C_WriteByte(L3G4200D_CTRL_REG1, 0x0F);  // Power ON, XYZ enable, 100Hz
+    I2C_WriteByte(L3G4200D_CTRL_REG4, 0x00);  // ±250 dps
+}
+
+void L3G4200D_ReadGyro(int16_t *x, int16_t *y, int16_t *z)
+{
+    uint8_t buf[6];
+    HAL_I2C_Mem_Read(&hi2c1, L3G4200D_ADDR, L3G4200D_OUT_X_L | 0x80, I2C_MEMADD_SIZE_8BIT, buf, 6, 100);
+
+    *x = (int16_t)(buf[1] << 8 | buf[0]);
+    *y = (int16_t)(buf[3] << 8 | buf[2]);
+    *z = (int16_t)(buf[5] << 8 | buf[4]);
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -266,7 +316,15 @@ int main(void)
   MX_SPI2_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  Send_String("MT25QL01GBBB8ESF Test\r\n");
+  UART_Print("System Initialized\r\n");
+
+  L3G4200D_Init();
+
+  int16_t gyro_x, gyro_y, gyro_z;
+
+  char msg[64];
+
+  Send_String("Test\r\n");
 
   // Check ID:20 BA 21
   Flash_ReadID();
@@ -315,9 +373,17 @@ int main(void)
 	  // Read
 
 	  uint8_t read_val = Flash_ReadByte(FLASH_TARGET_ADDRESS);
-	  char msg[64];
-	  sprintf(msg, "Read: %d\r\n", read_val);
-	  Send_String(msg);
+	  char msg2[64];
+	  sprintf(msg2, "Read: %d\r\n", read_val);
+	  Send_String(msg2);
+
+	  L3G4200D_ReadGyro(&gyro_x, &gyro_y, &gyro_z);
+
+	  snprintf(msg, sizeof(msg), "X:%d Y:%d Z:%d\r\n", gyro_x, gyro_y, gyro_z);
+
+	  UART_Print(msg);
+
+	  HAL_Delay(500);
 	}
 	else
 	{
