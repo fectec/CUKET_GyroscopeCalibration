@@ -316,6 +316,17 @@ int main(void)
   MX_SPI2_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
+  UART_Print("System Standby: Press Button to Start...\r\n");
+
+  while (HAL_GPIO_ReadPin(EXT_PUSH_BUTTON_GPIO_Port, EXT_PUSH_BUTTON_Pin) == GPIO_PIN_SET)
+  {
+    HAL_Delay(10); // Short delay to keep the loop stable
+  }
+
+  HAL_GPIO_WritePin(EXT_LED_GPIO_Port, EXT_LED_Pin, GPIO_PIN_SET);
+
+  HAL_Delay(200);
+
   UART_Print("System Initialized\r\n");
 
   L3G4200D_Init();
@@ -586,7 +597,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4|LD2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4|LD2_Pin|EXT_LED_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -607,6 +618,19 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : EXT_LED_Pin */
+  GPIO_InitStruct.Pin = EXT_LED_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(EXT_LED_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : EXT_PUSH_BUTTON_Pin */
+  GPIO_InitStruct.Pin = EXT_PUSH_BUTTON_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(EXT_PUSH_BUTTON_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
