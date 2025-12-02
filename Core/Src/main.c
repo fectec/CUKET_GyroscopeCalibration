@@ -2,7 +2,7 @@
 /**
   ******************************************************************************
   * @file           : main.c
-  * @brief          : Main program body (FLASH + L3G4200D + LOG)
+  * @brief          : Main program body (FLASH + L3G4200D + algoritmo de log)
   ******************************************************************************
   */
 /* USER CODE END Header */
@@ -43,8 +43,6 @@ typedef enum {
 #define FLASH_WRITE_STATUS    0x01
 #define FLASH_SECTOR_ERASE_4K 0x20
 
-#define FLASH_TARGET_ADDRESS  0x000000  // sector initialization
-
 /* LED to read State - PA15 - (EXT_LED_Pin) */
 #define EXT_LED_ON()      HAL_GPIO_WritePin(EXT_LED_GPIO_Port, EXT_LED_Pin, GPIO_PIN_SET)
 #define EXT_LED_OFF()     HAL_GPIO_WritePin(EXT_LED_GPIO_Port, EXT_LED_Pin, GPIO_PIN_RESET)
@@ -68,9 +66,18 @@ typedef enum {
 #define REVERSE_DELAY_MS       20000U   // 20 s to invert the direction
 #define SAMPLE_PERIOD_MS       10U      // 100 Hz
 #define MAX_SAMPLES            6002    // approximate maximum of samples with around 1 minute
+#define PC_WINDOW_MS 15000U   // 15 s to decide if we are using laptop or not
 
 // Rotary table's Nominal velocity in rad/s
 #define OMEGA_REF_RAD_S   (5.0f * PI_F / 180.0f)   // Dummy value until we go to lab
+
+#define FLASH_HEADER_ADDR    0x000000U  // Header (magic, sample_count, split_index)
+#define FLASH_DATA_ADDR      0x000010U  // Donde empiezan realmente las muestras
+
+// Mantén este para compatibilidad si quieres usarlo en otras partes:
+#define FLASH_TARGET_ADDRESS FLASH_DATA_ADDR
+
+#define LOG_MAGIC            0xA5A5U    // Cualquier patrón que no sea aleatorio
 
 /* Gyroscope conversions */
 #define PI_F                 3.14159265f
@@ -112,8 +119,9 @@ static uint16_t split_index = 0;
 static uint32_t t_start_reverse = 0;
 
 /* Logging in Flash */
-static uint32_t flash_write_addr = FLASH_TARGET_ADDRESS;
+static uint32_t flash_write_addr = FLASH_DATA_ADDR;
 static uint16_t sample_count = 0;
+static bool g_pc_mode = false;
 
 /* USER CODE END PV */
 
@@ -149,6 +157,9 @@ static  void Gyro_Calibrate(uint16_t n);
 /* ---- Logging ---- */
 static void Log_Sample_ToFlash(int16_t gx, int16_t gy, int16_t gz);
 static void Send_AllData_FromFlash(void);
+static void Check_PC_ModeWindow(void);
+static void Save_LogHeader(void);
+static void Recover_LogHeader(void);
 
 /* USER CODE END PFP */
 
@@ -296,10 +307,11 @@ void L3G4200D_Init(void)
     uint8_t who = 0;
 
     /* Try until gyroscope is found */
-    do {
-        who = I2C_ReadByte(L3G4200D_WHO_AM_I);
-
-        if (who != 0xD3) {
+    who = I2C_ReadByte(L3G4200D_WHO_AM_I);
+    while(who != 0xD3){
+        //if (who != 0xD3) {
+    		who = 0;
+    		who = I2C_ReadByte(L3G4200D_WHO_AM_I);
             UART_Print("L3G4200D not found! Retrying in 1 s...\r\n");
 
             /* Indicate error with LED. In this case, since it is OFF at the start,
@@ -307,9 +319,9 @@ void L3G4200D_Init(void)
             EXT_LED_TOGGLE();
 
             HAL_Delay(1000);
-        }
+        //}
 
-    } while (who != 0xD3);
+    }
 
     UART_Print("L3G4200D detected successfully.\r\n");
 
@@ -382,7 +394,7 @@ static void Log_Sample_ToFlash(int16_t gx, int16_t gy, int16_t gz)
 static void Send_AllData_FromFlash(void)
 {
     char line[160];
-    uint32_t addr = FLASH_TARGET_ADDRESS;
+    uint32_t addr = FLASH_DATA_ADDR;
 
     // ----- Accums for average of wi+ and wi- -----
     float sum_pos_x = 0.0f, sum_pos_y = 0.0f, sum_pos_z = 0.0f;
@@ -485,6 +497,94 @@ static void Send_AllData_FromFlash(void)
     UART_Print("----------------------------------------\r\n");
 }
 
+static void Check_PC_ModeWindow(void)
+{
+    uint32_t t0 = HAL_GetTick();
+    uint8_t rx;
+
+    UART_Print("Press 'A' within 15 s to enter PC mode (download logs).\r\n");
+    UART_Print("If no key is received, system will start a new logging run.\r\n");
+
+    g_pc_mode = false;
+
+    while ((HAL_GetTick() - t0) < PC_WINDOW_MS) {
+        // Intento leer 1 byte con timeout corto
+        if (HAL_UART_Receive(&huart2, &rx, 1, 10) == HAL_OK) {
+            if (rx == 'A' || rx == 'a') {
+                g_pc_mode = true;
+                UART_Print("PC mode selected. Logs will NOT be erased.\r\n");
+                return;
+            }
+        }
+    }
+
+    UART_Print("No PC command received. Starting logging sequence.\r\n");
+}
+
+static void Save_LogHeader(void)
+{
+    // Estructura:
+    // [0-1]: magic
+    // [2-3]: reservado
+    // [4-5]: sample_count (uint16_t)
+    // [6-7]: split_index  (uint16_t)
+
+    uint8_t buf[8];
+
+    buf[0] = (uint8_t)(LOG_MAGIC & 0xFF);
+    buf[1] = (uint8_t)((LOG_MAGIC >> 8) & 0xFF);
+
+    buf[2] = 0x00;
+    buf[3] = 0x00;
+
+    buf[4] = (uint8_t)(sample_count & 0xFF);
+    buf[5] = (uint8_t)((sample_count >> 8) & 0xFF);
+
+    buf[6] = (uint8_t)(split_index & 0xFF);
+    buf[7] = (uint8_t)((split_index >> 8) & 0xFF);
+
+    // Guardamos byte a byte para no complicarnos (es poca info)
+    for (int i = 0; i < 8; i++) {
+        Flash_WriteByte(FLASH_HEADER_ADDR + i, buf[i]);
+    }
+
+    UART_Print("Log header saved to FLASH.\r\n");
+}
+
+static void Recover_LogHeader(void)
+{
+    uint8_t b0 = Flash_ReadByte(FLASH_HEADER_ADDR + 0);
+    uint8_t b1 = Flash_ReadByte(FLASH_HEADER_ADDR + 1);
+
+    uint16_t magic = (uint16_t)((b1 << 8) | b0);
+
+    if (magic != LOG_MAGIC) {
+        // No hay datos válidos
+        sample_count    = 0;
+        split_index     = 0;
+        flash_write_addr = FLASH_DATA_ADDR;
+        UART_Print("No valid log header found. Assuming empty log.\r\n");
+        return;
+    }
+
+    uint8_t sc0 = Flash_ReadByte(FLASH_HEADER_ADDR + 4);
+    uint8_t sc1 = Flash_ReadByte(FLASH_HEADER_ADDR + 5);
+    uint8_t sp0 = Flash_ReadByte(FLASH_HEADER_ADDR + 6);
+    uint8_t sp1 = Flash_ReadByte(FLASH_HEADER_ADDR + 7);
+
+    sample_count = (uint16_t)((sc1 << 8) | sc0);
+    split_index  = (uint16_t)((sp1 << 8) | sp0);
+
+    // El siguiente write apuntaría justo después de los datos existentes
+    flash_write_addr = FLASH_DATA_ADDR + (uint32_t)sample_count * 6U;
+
+    char msg[64];
+    sprintf(msg, "Recovered header: sample_count=%u, split_index=%u\r\n",
+            sample_count, split_index);
+    UART_Print(msg);
+}
+
+
 /* USER CODE END 0 */
 
 /**
@@ -493,144 +593,174 @@ static void Send_AllData_FromFlash(void)
   */
 int main(void)
 {
-  /* MCU Configuration--------------------------------------------------------*/
-  HAL_Init();
-  SystemClock_Config();
+    /* MCU Configuration--------------------------------------------------------*/
+    HAL_Init();
+    SystemClock_Config();
 
-  MX_GPIO_Init();
-  MX_DMA_Init();
-  MX_USART2_UART_Init();
-  MX_SPI2_Init();
-  MX_I2C1_Init();
-  /*Gyroscope initialization + bias */
-  L3G4200D_Init();
-  Gyro_Calibrate(200);
+    MX_GPIO_Init();
+    MX_DMA_Init();
+    MX_USART2_UART_Init();
+    MX_SPI2_Init();
+    MX_I2C1_Init();
 
-  EXT_LED_ON();  // LED ON
+    /* Gyroscope initialization + bias */
+    L3G4200D_Init();
+    Gyro_Calibrate(200);
 
-  /* USER CODE BEGIN 2 */
+    EXT_LED_ON();  // LED ON
 
-  UART_Print("System boot.\r\n");
-  /*Initialize FLASH and clean logging*/
-  Flash_ClearWriteProtect();
-  Flash_ReadID();
-  Flash_Erase4K(FLASH_TARGET_ADDRESS);
-  flash_write_addr = FLASH_TARGET_ADDRESS;
-  sample_count     = 0;
-  split_index = 0;
+    /* ================== INICIALIZACIÓN FLASH ================== */
+    Flash_ClearWriteProtect();
+    Flash_ReadID();
+    Recover_LogHeader();
 
-  UART_Print("Waiting 20 s to start logging...\r\n");
+    // OJO: aquí solo inicializamos punteros en RAM
+    //flash_write_addr = FLASH_TARGET_ADDRESS;
+    //sample_count     = 0;
+    //split_index      = 0;
 
-  g_state       = STATE_WAIT_PLACEMENT;
-  t_start_wait  = HAL_GetTick();
-  t_start_measure = 0;
-  t_last_sample = 0;
-  t_last_blink = 0;
+    UART_Print("System boot.\r\n");
 
-  /* USER CODE END 2 */
+    /* ================== VENTANA PARA PC MODE ================== */
+    Check_PC_ModeWindow();
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-      uint32_t now = HAL_GetTick();
+    if (g_pc_mode)
+    {
+        /* --------- MODO PC: SOLO UART, SIN LOGGING --------- */
+        UART_Print("PC mode: use 'D' (download) or 'C' (clear).\r\n");
 
-      switch (g_state)
-      {
-      case STATE_WAIT_PLACEMENT:
-          /* 20s to place the gyroscope on the table */
-          if ((now - t_start_wait) >= START_DELAY_MS) {
-              UART_Print("Starting gyro logging (POS direction, wi+). Set rate table to +omega.\r\n");
-              g_state         = STATE_MEASURE_POS;
-              t_start_measure = now;
-              t_last_sample   = now;
-              t_last_blink    = now;
-              /* LED starts blinking */
-          }
-          break;
+        while (1) {
+            uint8_t rx;
+            if (HAL_UART_Receive(&huart2, &rx, 1, 50) == HAL_OK) {
+                if (rx == 'D' || rx == 'd') {
+                    Send_AllData_FromFlash();
+                } else if (rx == 'C' || rx == 'c') {
+                    UART_Print("Clearing 4K sector...\r\n");
+                    Flash_Erase4K(FLASH_HEADER_ADDR);   // <--- borrar todo el sector (header + datos)
+                    flash_write_addr = FLASH_DATA_ADDR;
+                    sample_count     = 0;
+                    split_index      = 0;
+                    UART_Print("Sector cleared.\r\n");
+                }
+                else {
+                    UART_Print("Unknown cmd. Use 'D' (download) or 'C' (clear).\r\n");
+                }
+            }
+        }
+        // Nunca llegas abajo si g_pc_mode == true
+    }
 
-      case STATE_MEASURE_POS:
-          /* logging while MEASURE_POS_WINDOW_MS */
-          if ((now - t_start_measure) >= MEASURE_POS_WINDOW_MS) {
-              UART_Print("First logging window (wi+) finished.\r\n");
-              /* Index is saved when wi+ is over */
-              split_index = sample_count;
+    /* ================== MODO BATERÍA: LOGGING ================== */
 
-              UART_Print("Reverse rotation direction on the rate table (to wi-) in 20 s...\r\n");
-              g_state        = STATE_WAIT_REVERSE;
-              t_start_reverse = now;
-              EXT_LED_ON();  // LED will remain ON
-          } else {
-              /* logging data */
-              if ((now - t_last_sample) >= SAMPLE_PERIOD_MS) {
-                  t_last_sample = now;
-                  int16_t gx, gy, gz;
-                  L3G4200D_ReadGyro(&gx, &gy, &gz);
-                  Log_Sample_ToFlash(gx, gy, gz);
-              }
+    UART_Print("Erasing 4K sector and starting new logging run.\r\n");
+    Flash_Erase4K(FLASH_HEADER_ADDR);
+    flash_write_addr = FLASH_DATA_ADDR;
+    sample_count     = 0;
+    split_index      = 0;
 
-              /* LED blinking */
-              if ((now - t_last_blink) >= LOG_LED_BLINK_MS) {
-                  t_last_blink = now;
-                  EXT_LED_TOGGLE();
-              }
-          }
-          break;
+    UART_Print("Waiting 20 s to start logging...\r\n");
 
-      case STATE_WAIT_REVERSE:
-          if ((now - t_start_reverse) >= REVERSE_DELAY_MS) {
-              UART_Print("Starting gyro logging (NEG direction, wi-).\r\n");
-              g_state         = STATE_MEASURE_NEG;
-              t_start_measure = now;
-              t_last_sample   = now;
-              t_last_blink    = now;
-          }
-          break;
+    g_state         = STATE_WAIT_PLACEMENT;
+    t_start_wait    = HAL_GetTick();
+    t_start_measure = 0;
+    t_last_sample   = 0;
+    t_last_blink    = 0;
 
-      case STATE_MEASURE_NEG:
-          /* logging while MEASURE_NEG_WINDOW_MS */
-          if ((now - t_start_measure) >= MEASURE_NEG_WINDOW_MS) {
-              UART_Print("Second logging window (wi-) finished. Going to IDLE.\r\n");
-              g_state = STATE_IDLE;
-              EXT_LED_ON(); // LED ON
-          } else {
-              if ((now - t_last_sample) >= SAMPLE_PERIOD_MS) {
-                  t_last_sample = now;
-                  int16_t gx, gy, gz;
-                  L3G4200D_ReadGyro(&gx, &gy, &gz);
-                  Log_Sample_ToFlash(gx, gy, gz);
-              }
+    /* ================== MÁQUINA DE ESTADOS ================== */
+    while (1)
+    {
+        uint32_t now = HAL_GetTick();
 
-              if ((now - t_last_blink) >= LOG_LED_BLINK_MS) {
-                  t_last_blink = now;
-                  EXT_LED_TOGGLE();
-              }
-          }
-          break;
+        switch (g_state)
+        {
+        case STATE_WAIT_PLACEMENT:
+            if ((now - t_start_wait) >= START_DELAY_MS) {
+                UART_Print("Starting gyro logging (POS direction, wi+). Set rate table to +omega.\r\n");
+                g_state         = STATE_MEASURE_POS;
+                t_start_measure = now;
+                t_last_sample   = now;
+                t_last_blink    = now;
+            }
+            break;
 
-      case STATE_IDLE:
-      {
-          uint8_t rx;
-          if (HAL_UART_Receive(&huart2, &rx, 1, 10) == HAL_OK) {
-              if (rx == 'D' || rx == 'd') {
-                  Send_AllData_FromFlash();
-              } else {
-                  UART_Print("Unknown cmd. Send 'D' to download data.\r\n");
-              }
-          }
-      }
-          break;
+        case STATE_MEASURE_POS:
+            if ((now - t_start_measure) >= MEASURE_POS_WINDOW_MS) {
+                UART_Print("First logging window (wi+) finished.\r\n");
+                split_index = sample_count;
 
-      default:
-          g_state = STATE_IDLE;
-          break;
-      }
+                UART_Print("Reverse rotation direction on the rate table (to wi-) in 20 s...\r\n");
+                g_state         = STATE_WAIT_REVERSE;
+                t_start_reverse = now;
+                EXT_LED_ON();
+            } else {
+                if ((now - t_last_sample) >= SAMPLE_PERIOD_MS) {
+                    t_last_sample = now;
+                    int16_t gx, gy, gz;
+                    L3G4200D_ReadGyro(&gx, &gy, &gz);
+                    Log_Sample_ToFlash(gx, gy, gz);
+                }
 
-  }
+                if ((now - t_last_blink) >= LOG_LED_BLINK_MS) {
+                    t_last_blink = now;
+                    EXT_LED_TOGGLE();
+                }
+            }
+            break;
+
+        case STATE_WAIT_REVERSE:
+            if ((now - t_start_reverse) >= REVERSE_DELAY_MS) {
+                UART_Print("Starting gyro logging (NEG direction, wi-).\r\n");
+                g_state         = STATE_MEASURE_NEG;
+                t_start_measure = now;
+                t_last_sample   = now;
+                t_last_blink    = now;
+            }
+            break;
+
+        case STATE_MEASURE_NEG:
+            if ((now - t_start_measure) >= MEASURE_NEG_WINDOW_MS) {
+                UART_Print("Second logging window (wi-) finished. Going to IDLE.\r\n");
+                // Guardar header con sample_count y split_index
+                Save_LogHeader();
+                g_state = STATE_IDLE;
+                EXT_LED_ON();
+            } else {
+                if ((now - t_last_sample) >= SAMPLE_PERIOD_MS) {
+                    t_last_sample = now;
+                    int16_t gx, gy, gz;
+                    L3G4200D_ReadGyro(&gx, &gy, &gz);
+                    Log_Sample_ToFlash(gx, gy, gz);
+                }
+
+                if ((now - t_last_blink) >= LOG_LED_BLINK_MS) {
+                    t_last_blink = now;
+                    EXT_LED_TOGGLE();
+                }
+            }
+            break;
+
+        case STATE_IDLE:
+        {
+            uint8_t rx;
+            if (HAL_UART_Receive(&huart2, &rx, 1, 10) == HAL_OK) {
+                if (rx == 'D' || rx == 'd') {
+                    Send_AllData_FromFlash();
+                } else {
+                    UART_Print("Unknown cmd. Send 'D' to download data.\r\n");
+                }
+            }
+        }
+            break;
+
+        default:
+            g_state = STATE_IDLE;
+            break;
+        }
+    }
+}
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
-}
 /* USER CODE END 3 */
 
 
