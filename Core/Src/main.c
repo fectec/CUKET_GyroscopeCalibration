@@ -2,17 +2,7 @@
 /**
   ******************************************************************************
   * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
+  * @brief          : Main program body (FLASH + L3G4200D + LOG)
   ******************************************************************************
   */
 /* USER CODE END Header */
@@ -23,42 +13,68 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
+#include <math.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef enum {
+    STATE_WAIT_PLACEMENT = 0,   // 20 s para ponerla en la mesa
+    STATE_MEASURE_POS,          // log giro wi+
+    STATE_WAIT_REVERSE,         // tiempo para invertir giro
+    STATE_MEASURE_NEG,          // log giro wi-
+    STATE_IDLE                  // espera comando UART
+} system_state_t;
 
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-// Flash Memory
-#define FLASH_CS_LOW()   				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET)
-#define FLASH_CS_HIGH()  				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET)
+/* ---- FLASH ---- */
+#define FLASH_CS_LOW()        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET)
+#define FLASH_CS_HIGH()       HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET)
 
-#define FLASH_JEDEC_ID_LEN  			3
-#define FLASH_PAGE_SIZE                 256
+#define FLASH_WRITE_ENABLE    0x06
+#define FLASH_PAGE_PROGRAM    0x02
+#define FLASH_READ_DATA       0x03
+#define FLASH_READ_STATUS     0x05
+#define FLASH_WRITE_STATUS    0x01
+#define FLASH_SECTOR_ERASE_4K 0x20
 
-#define FLASH_CMD_READ_STATUS_REGISTER	0x05
-#define FLASH_CMD_WRITE_ENABLE		    0x06
-#define FLASH_CMD_WRITE_STATUS_REG      0x01
-#define FLASH_CMD_SECTOR_ERASE_4K       0x20
-#define FLASH_CMD_READ_DATA     		0x03
-#define FLASH_CMD_READ_ID     		    0x9F
-#define FLASH_CMD_PAGE_PROGRAM          0x02
+#define FLASH_TARGET_ADDRESS  0x000000  // sector initialization
 
-// Gyroscope
-#define L3G4200D_ADDR       			(0x69 << 1)
-#define L3G4200D_WHO_AM_I   			0x0F
-#define L3G4200D_CTRL_REG1  			0x20
-#define L3G4200D_CTRL_REG4  			0x23
-#define L3G4200D_OUT_X_L    			0x28
+/* LED to read State - PA15 - (EXT_LED_Pin) */
+#define EXT_LED_ON()      HAL_GPIO_WritePin(EXT_LED_GPIO_Port, EXT_LED_Pin, GPIO_PIN_SET)
+#define EXT_LED_OFF()     HAL_GPIO_WritePin(EXT_LED_GPIO_Port, EXT_LED_Pin, GPIO_PIN_RESET)
+#define EXT_LED_TOGGLE()  HAL_GPIO_TogglePin(EXT_LED_GPIO_Port, EXT_LED_Pin)
 
-// Test Configuration
-#define LOG_DURATION_MS                 60000   // 60s cycle
-#define SAMPLE_PERIOD_MS                10      // 10ms = 100Hz
-#define TEST_HEADER_MARKER              0xAA55  // Number for data start
+/* Blinking period */
+#define LOG_LED_BLINK_MS  200U   // 200 ms (5 Hz approx.)
+
+
+/* ---- L3G4200D ---- */
+#define L3G4200D_ADDR        (0x69 << 1)
+#define L3G4200D_WHO_AM_I    0x0F
+#define L3G4200D_CTRL_REG1   0x20
+#define L3G4200D_CTRL_REG4   0x23
+#define L3G4200D_OUT_X_L     0x28
+
+/* ---- Time defines ---- */
+#define START_DELAY_MS         20000U   // 20 s to put the gyroscope on the table
+#define MEASURE_POS_WINDOW_MS  30000U   // 30 s in wi+
+#define MEASURE_NEG_WINDOW_MS  30000U   // 30 s in wi-
+#define REVERSE_DELAY_MS       20000U   // 20 s to invert the direction
+#define SAMPLE_PERIOD_MS       10U      // 100 Hz
+#define MAX_SAMPLES            6002    // approximate maximum of samples with around 1 minute
+
+// Rotary table's Nominal velocity in rad/s
+#define OMEGA_REF_RAD_S   (5.0f * PI_F / 180.0f)   // Dummy value until we go to lab
+
+/* Gyroscope conversions */
+#define PI_F                 3.14159265f
+static const float g_lsb2dps = 0.00875f;   // ±250 dps → 8.75 mdps/LSB
 
 /* USER CODE END PD */
 
@@ -77,9 +93,28 @@ SPI_HandleTypeDef hspi2;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-// Global Test Variables
-uint32_t current_flash_addr = 0x000000;
-uint8_t  test_cycle_id = 1;
+/* Gyroscope's bias */
+static int16_t bias_x = 0, bias_y = 0, bias_z = 0;
+
+/* Global state for system */
+static system_state_t g_state = STATE_WAIT_PLACEMENT;
+
+/* Timers */
+static uint32_t t_start_wait = 0;
+static uint32_t t_start_measure = 0;
+static uint32_t t_last_sample = 0;
+static uint32_t t_last_blink = 0;
+
+/* Signals where wi+ ends and where wi- starts*/
+static uint16_t split_index = 0;
+
+/* Time to start inverting the direction */
+static uint32_t t_start_reverse = 0;
+
+/* Logging in Flash */
+static uint32_t flash_write_addr = FLASH_TARGET_ADDRESS;
+static uint16_t sample_count = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -91,468 +126,363 @@ static void MX_SPI2_Init(void);
 static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
 
+/* ---- UART ---- */
+void UART_Print(char *msg);
+
+/* ---- FLASH ---- */
+uint8_t Flash_ReadStatus(void);
+void Flash_WaitForWriteEnd(void);
+void Flash_WriteEnable(void);
+void Flash_ClearWriteProtect(void);
+void Flash_Erase4K(uint32_t address);
+uint8_t Flash_ReadByte(uint32_t address);
+void  Flash_WriteByte(uint32_t address, uint8_t data);
+void  Flash_ReadID(void);
+
+/* ---- I2C / L3G4200D ---- */
+uint8_t I2C_ReadByte(uint8_t reg);
+void    I2C_WriteByte(uint8_t reg, uint8_t value);
+void    L3G4200D_Init(void);
+void    L3G4200D_ReadGyro(int16_t *x, int16_t *y, int16_t *z);
+static  void Gyro_Calibrate(uint16_t n);
+
+/* ---- Logging ---- */
+static void Log_Sample_ToFlash(int16_t gx, int16_t gy, int16_t gz);
+static void Send_AllData_FromFlash(void);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-// UART Helper
-void UART_Print(char *msg)
+/* ======================= FLASH ======================= */
+uint8_t Flash_ReadStatus(void)
 {
-    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
-}
-
-// Flash Memory Driver Functions
-
-/**
-  * @brief  Reads the 8-bit Status Register to determine device state.
-  * @note   Implements "Command Set READ REGISTER Operations - READ STATUS REGISTER (05h)".
-  * @retval uint8_t: The current value of the Status Register.
-  */
-uint8_t Flash_ReadStatus(void) {
-    uint8_t cmd = FLASH_CMD_READ_STATUS_REGISTER;
+    uint8_t cmd = FLASH_READ_STATUS;
     uint8_t status;
 
     FLASH_CS_LOW();
-
     HAL_SPI_Transmit(&hspi2, &cmd, 1, HAL_MAX_DELAY);
     HAL_SPI_Receive(&hspi2, &status, 1, HAL_MAX_DELAY);
-
     FLASH_CS_HIGH();
 
     return status;
 }
 
-/**
-  * @brief  Polls Status Register Bit 0 (Write in progress) to wait for internal operations to complete.
-  * @note   Blocks execution while the Flash is BUSY (Bit 0 = 1).
-  * Waits for WRITE, PROGRAM, or ERASE cycles to finish before returning (Ready = 0).
-  */
-void Flash_WaitForWriteEnd(void) {
-    while (Flash_ReadStatus() & 0x01);
+void Flash_WaitForWriteEnd(void)
+{
+    while (Flash_ReadStatus() & 0x01) {
+        /* bit0 = WIP (Write In Progress) */
+    }
 }
 
-/**
-  * @brief  Sets the Write Enable Latch (WEL) bit in the Status Register.
-  * @note   Implements "Command Set WRITE Operations - WRITE ENABLE (06h)".
-  * @retval None
-  */
-void Flash_WriteEnable(void) {
-    uint8_t cmd = FLASH_CMD_WRITE_ENABLE;
+void Flash_WriteEnable(void)
+{
+    uint8_t cmd = FLASH_WRITE_ENABLE;
 
     FLASH_CS_LOW();
-
     HAL_SPI_Transmit(&hspi2, &cmd, 1, HAL_MAX_DELAY);
-
     FLASH_CS_HIGH();
 
     HAL_Delay(1);
 }
 
-/**
-  * @brief  Clears Block Protection bits (BP) in the Status Register.
-  * @note   Implements "Command Set WRITE REGISTER Operations - WRITE STATUS REGISTER (01h)".
-  * Transaction is 8-bit Command + 8-bit Data.
-  * Writing 0x00 clears bits 7:2 (BP bits), disabling software protection.
-  * @retval None
-  */
-void Flash_ClearWriteProtect(void) {
+void Flash_ClearWriteProtect(void)
+{
     Flash_WriteEnable();
-
-    // Command 0x01 + 1 Data Byte (0x00)
-    uint8_t cmd[] = { FLASH_CMD_WRITE_STATUS_REG, 0x00 };
+    uint8_t cmd[3] = { FLASH_WRITE_STATUS, 0x00, 0x00 };
 
     FLASH_CS_LOW();
-
     HAL_SPI_Transmit(&hspi2, cmd, sizeof(cmd), HAL_MAX_DELAY);
-
     FLASH_CS_HIGH();
 
     Flash_WaitForWriteEnd();
 }
 
-/**
-  * @brief  Erases a 4KB Subsector (Sets all bits to 1 / 0xFF).
-  * @note   Implements "Command Set ERASE Operations - SUBSECTOR ERASE (20h)".
-  * - An ERASE operation changes bits from 0 to 1.
-  * - Any address within the subsector is valid for entry.
-  * - The Write Enable Latch (WEL) is automatically cleared to 0
-  * when the operation completes, regardless of success.
-  * @param  address: Any 24-bit address inside the target 4KB sector.
-  */
-void Flash_Erase4K(uint32_t address) {
-
-    // Before any ERASE command WRITE ENABLE command must be executed
+void Flash_Erase4K(uint32_t address)
+{
     Flash_WriteEnable();
 
-    uint8_t cmd[] = {
-        FLASH_CMD_SECTOR_ERASE_4K,
-        (address >> 16) & 0xFF,     // Address High Byte
-        (address >> 8) & 0xFF,      // Address Mid Byte
-        address & 0xFF              // Address Low Byte
+    uint8_t cmd[4] = {
+        FLASH_SECTOR_ERASE_4K,
+        (uint8_t)((address >> 16) & 0xFF),
+        (uint8_t)((address >> 8)  & 0xFF),
+        (uint8_t)( address        & 0xFF)
     };
 
-    // S# is driven LOW and held LOW until the eighth bit of the last data byte
     FLASH_CS_LOW();
-
-    HAL_SPI_Transmit(&hspi2, cmd, sizeof(cmd), HAL_MAX_DELAY);
-
-    // After which [S#] must be driven HIGH
-    // If S# is not driven HIGH, the command is not executed
+    HAL_SPI_Transmit(&hspi2, cmd, 4, HAL_MAX_DELAY);
     FLASH_CS_HIGH();
 
-    // When the operation is in progress the write in progress bit is set to 1
     Flash_WaitForWriteEnd();
 }
 
-/**
-  * @brief  Reads a single byte from a specific address.
-  * @note   Implements "Command Set READ MEMORY Operations - READ (03h)".
-  * - Supports 3-byte addressing (A[23:0]).
-  * @param  address: 24-bit Flash address.
-  * @retval uint8_t: The data byte read from memory.
-  */
-uint8_t Flash_ReadByte(uint32_t address) {
-    uint8_t recv_data = 0;
+uint8_t Flash_ReadByte(uint32_t address)
+{
+    uint8_t cmd[4];
+    uint8_t recv;
 
-    // Command 0x03 + 3 Bytes of Address
-    uint8_t cmd[] = {
-        FLASH_CMD_READ_DATA,        // 0x03
-        (address >> 16) & 0xFF,     // Address High
-        (address >> 8) & 0xFF,      // Address Mid
-        address & 0xFF              // Address Low
-    };
+    cmd[0] = FLASH_READ_DATA;
+    cmd[1] = (uint8_t)((address >> 16) & 0xFF);
+    cmd[2] = (uint8_t)((address >> 8)  & 0xFF);
+    cmd[3] = (uint8_t)( address        & 0xFF);
 
-    // To initiate a command, S# is driven LOW
     FLASH_CS_LOW();
-
-    // Command code is input, followed by input of the address bytes
-    HAL_SPI_Transmit(&hspi2, cmd, sizeof(cmd), HAL_MAX_DELAY);
-
-    // The device will output data from the selected address
-    HAL_SPI_Receive(&hspi2, &recv_data, 1, HAL_MAX_DELAY);
-
-    // The operation is terminated by driving S# HIGH
+    HAL_SPI_Transmit(&hspi2, cmd, 4, HAL_MAX_DELAY);
+    HAL_SPI_Receive(&hspi2, &recv, 1, HAL_MAX_DELAY);
     FLASH_CS_HIGH();
 
-    return recv_data;
+    return recv;
 }
 
-/**
-  * @brief  Reads the 3-byte JEDEC Device ID.
-  * @note   Implements "Command Set READ ID Operations - READ ID (9E/9Fh)".
-  * - Bytes returned: [1: Manufacturer] [2: Memory Type] [3: Capacity]
-  * - WARNING: If an ERASE or PROGRAM cycle is in progress, this command
-  * is NOT decoded and the command cycle in progress is not affected.
-  * (The chip will likely return garbage or 0xFF if busy).
-  */
-void Flash_ReadID(void) {
-    uint8_t cmd = FLASH_CMD_READ_ID;
+void Flash_WriteByte(uint32_t address, uint8_t data)
+{
 
-    uint8_t id[FLASH_JEDEC_ID_LEN];
+    Flash_WriteEnable();
+
+    uint8_t cmd[4] = {
+        FLASH_PAGE_PROGRAM,
+        (uint8_t)((address >> 16) & 0xFF),
+        (uint8_t)((address >> 8)  & 0xFF),
+        (uint8_t)( address        & 0xFF)
+    };
 
     FLASH_CS_LOW();
+    HAL_SPI_Transmit(&hspi2, cmd, 4, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(&hspi2, &data, 1, HAL_MAX_DELAY);
+    FLASH_CS_HIGH();
 
-    // Send Command 0x9F
+    Flash_WaitForWriteEnd();
+}
+
+void Flash_ReadID(void)
+{
+    uint8_t cmd = 0x9F;
+    uint8_t id[3];
+
+    FLASH_CS_LOW();
     HAL_SPI_Transmit(&hspi2, &cmd, 1, HAL_MAX_DELAY);
-
-    // Receive 3 Bytes of ID Data
-    HAL_SPI_Receive(&hspi2, id, sizeof(id), HAL_MAX_DELAY);
-
+    HAL_SPI_Receive(&hspi2, id, 3, HAL_MAX_DELAY);
     FLASH_CS_HIGH();
 
     char msg[64];
-
-    sprintf(msg, "Flash ID: %02X %02X %02X\r\n", id[0], id[1], id[2]);
-
+    sprintf(msg, "JEDEC ID: %02X %02X %02X\r\n", id[0], id[1], id[2]);
     UART_Print(msg);
 }
 
-/**
-  * @brief  Debug function to verify SPI communication and Write Enable logic.
-  * @note   Performs a "Write Enable" (06h) followed by a "Read Status" (05h).
-  * Purpose:
-  * 1. Confirms the chip is listening to commands.
-  * 2. Verifies that Bit 1 (WEL - Write Enable Latch) successfully latches to '1'.
-  * * Expected Output: Status Register should have Bit 1 set (e.g., 0x02).
-  * If Output is 0x00, SPI communication is likely failing or the chip is hardware-locked.
-  */
-void Test_WriteEnable_Status(void) {
-
-    Flash_WriteEnable();
-
-    HAL_Delay(1);
-
-    uint8_t status = Flash_ReadStatus();
-
-    char msg[64];
-
-    sprintf(msg, "After WREN, Status Reg: 0x%02X\r\n", status);
-
-    UART_Print(msg);
+/* ======================= UART ======================= */
+void UART_Print(char *msg)
+{
+    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 100);
 }
 
-/**
-  * @brief  Writes a buffer of data to a specific address.
-  * @note   Implements "Command Set PROGRAM Operations - PAGE PROGRAM (02h)".
-  * Optimization: Writes multiple bytes in one transaction to save time.
-  * WARNING: Cannot cross Page Boundaries (256-byte blocks).
-  * Ensure (address % 256) + len <= 256.
-  * @param  address: 24-bit Flash address.
-  * @param  data: Pointer to data buffer.
-  * @param  len: Number of bytes to write.
-  */
-void Flash_WriteBuffer(uint32_t address, uint8_t *data, uint16_t len) {
-    Flash_WriteEnable();
-
-    uint8_t cmd[] = {
-        FLASH_CMD_PAGE_PROGRAM, // 0x02
-        (address >> 16) & 0xFF,
-        (address >> 8) & 0xFF,
-        address & 0xFF
-    };
-
-    FLASH_CS_LOW();
-
-    // 1. Send Command + Address
-    HAL_SPI_Transmit(&hspi2, cmd, sizeof(cmd), HAL_MAX_DELAY);
-
-    // 2. Send the Data Buffer
-    HAL_SPI_Transmit(&hspi2, data, len, HAL_MAX_DELAY);
-
-    FLASH_CS_HIGH();
-
-    // 3. Wait ONCE for the whole buffer to be written
-    Flash_WaitForWriteEnd();
-}
-
-void Flash_WriteByte(uint32_t address, uint8_t data) {
-    Flash_WriteBuffer(address, &data, 1);
-}
-
-// Gyroscope Driver Functions
-
-/**
-  * @brief  Reads a single byte from a specific L3G4200D register.
-  * @param  reg: The register address to read from.
-  * @retval uint8_t: The value read from the register.
-  */
-uint8_t L3G4200D_ReadByte(uint8_t reg)
+/* ======================= I2C / L3G4200D ======================= */
+uint8_t I2C_ReadByte(uint8_t reg)
 {
     uint8_t data;
-    HAL_I2C_Mem_Read(&hi2c1, L3G4200D_ADDR, reg, I2C_MEMADD_SIZE_8BIT, &data, 1, 100);
+    HAL_I2C_Mem_Read(&hi2c1, L3G4200D_ADDR, reg,
+                     I2C_MEMADD_SIZE_8BIT, &data, 1, 100);
     return data;
 }
 
-/**
-  * @brief  Writes a single byte to a specific L3G4200D register.
-  * @param  reg: The register address to write to.
-  * @param  value: The data to write.
-  */
-void L3G4200D_WriteByte(uint8_t reg, uint8_t value)
+void I2C_WriteByte(uint8_t reg, uint8_t value)
 {
-    HAL_I2C_Mem_Write(&hi2c1, L3G4200D_ADDR, reg, I2C_MEMADD_SIZE_8BIT, &value, 1, 100);
+    HAL_I2C_Mem_Write(&hi2c1, L3G4200D_ADDR, reg,
+                      I2C_MEMADD_SIZE_8BIT, &value, 1, 100);
 }
 
-/**
-  * @brief  Initializes the L3G4200D Gyroscope.
-  */
 void L3G4200D_Init(void)
 {
-    // 1. Check Device ID
-    uint8_t who_am_i = L3G4200D_ReadByte(L3G4200D_WHO_AM_I);
+    uint8_t who = 0;
 
-    if (who_am_i != 0xD3) {
-        UART_Print("ERR: Gyro not found!\r\n");
-        Error_Handler();
-    }
-    else
-    {
-        UART_Print("Gyro Detected.\r\n");
-    }
+    /* Try until gyroscope is found */
+    do {
+        who = I2C_ReadByte(L3G4200D_WHO_AM_I);
 
-    // 2. Configure Power and Axes (CTRL_REG1)
-    // Register Address: 0x20
-    // We write 0x0F (Binary 0000 1111) which corresponds to:
-    // Bits 7-6 (DR/BW): 00 -> ODR 100Hz, Cut-Off 12.5Hz
-    // Bit 3 (PD): 1 -> Normal Mode
-    // Bits 2-0 (Zen, Yen, Xen): 111 -> All axes enabled
-    L3G4200D_WriteByte(L3G4200D_CTRL_REG1, 0x0F);
+        if (who != 0xD3) {
+            UART_Print("L3G4200D not found! Retrying in 1 s...\r\n");
 
-    // 3. Configure Full Scale (CTRL_REG4)
-    // Register Address: 0x23
-    // We write 0x00 (Binary 0000 0000) which corresponds to:
-    // Bit 7 (BDU): 0 -> Continuous Update
-    // Bit 6 (BLE): 0 -> Data LSB @ lower address (Little Endian)
-    // Bits 5-4 (FS): 00 -> 250 dps
-    L3G4200D_WriteByte(L3G4200D_CTRL_REG4, 0x00);
+            /* Indicate error with LED. In this case, since it is OFF at the start,
+             * the LED will be turned ON */
+            EXT_LED_TOGGLE();
+
+            HAL_Delay(1000);
+        }
+
+    } while (who != 0xD3);
+
+    UART_Print("L3G4200D detected successfully.\r\n");
+
+    /* CTRL_REG1: 0x3F -> ODR=200Hz, BW=50Hz, PD=1, X/Y/Z enable */
+    I2C_WriteByte(L3G4200D_CTRL_REG1, 0x3F);
+
+    /* CTRL_REG4: BDU=1, FS=±250 dps */
+    I2C_WriteByte(L3G4200D_CTRL_REG4, 0x80);
 }
 
-/**
-  * @brief  Reads X, Y, and Z axis raw data from the gyroscope.
-  * @note   Uses I2C "Multiple Byte Read" via address auto-increment.
-  * If the MSb of the SUB field is 1, the SUB (register address) is automatically incremented.
-  */
 void L3G4200D_ReadGyro(int16_t *x, int16_t *y, int16_t *z)
 {
     uint8_t buf[6];
+    HAL_I2C_Mem_Read(&hi2c1, L3G4200D_ADDR,
+                     L3G4200D_OUT_X_L | 0x80,
+                     I2C_MEMADD_SIZE_8BIT, buf, 6, 100);
 
-    // Read 6 bytes starting from OUT_X_L (0x28).
-    // Logic: 0x28 (Register) | 0x80 (Auto-Increment Bit)
-    // This allows reading X_L, X_H, Y_L, Y_H, Z_L, Z_H in one burst.
-    HAL_I2C_Mem_Read(&hi2c1, L3G4200D_ADDR, L3G4200D_OUT_X_L | 0x80, I2C_MEMADD_SIZE_8BIT, buf, 6, 100);
-
-    // Reassemble the data.
-    // (BLE bit): Default is 0 (Little Endian).
-    // Therefore, Low Byte is at Lower Address (index 0, 2, 4).
-    *x = (int16_t)(buf[1] << 8 | buf[0]);
-    *y = (int16_t)(buf[3] << 8 | buf[2]);
-    *z = (int16_t)(buf[5] << 8 | buf[4]);
+    *x = (int16_t)((buf[1] << 8) | buf[0]);
+    *y = (int16_t)((buf[3] << 8) | buf[2]);
+    *z = (int16_t)((buf[5] << 8) | buf[4]);
 }
 
-// Chamber Test Logic
+static void Gyro_Calibrate(uint16_t n)
+{
+    int32_t sx = 0, sy = 0, sz = 0;
+    int16_t x, y, z;
 
-void Perform_Bulk_Erase(void) {
-    UART_Print("CMD: Erasing 512KB (Wait ~5s)...\r\n");
-    HAL_GPIO_WritePin(EXT_LED_GPIO_Port, EXT_LED_Pin, GPIO_PIN_SET); // LED ON
+    UART_Print("Calibrating gyro bias, keep still...\r\n");
 
-    // Erase enough for ~10 cycles of 60s @ 100Hz (~360KB needed)
-    // Erasing 0x000000 to 0x080000 (512KB)
-    for (uint32_t addr = 0; addr < 0x080000; addr += 4096) {
-        Flash_Erase4K(addr);
+    for (uint16_t i = 0; i < n; i++) {
+        L3G4200D_ReadGyro(&x, &y, &z);
+        sx += x; sy += y; sz += z;
+        HAL_Delay(2);
     }
 
-    current_flash_addr = 0x000000;
-    test_cycle_id = 1;
+    bias_x = (int16_t)(sx / (int32_t)n);
+    bias_y = (int16_t)(sy / (int32_t)n);
+    bias_z = (int16_t)(sz / (int32_t)n);
 
-    HAL_GPIO_WritePin(EXT_LED_GPIO_Port, EXT_LED_Pin, GPIO_PIN_RESET); // LED OFF
-    UART_Print("DONE: Flash Erased.\r\n");
+    UART_Print("Gyro bias calibrated.\r\n");
 }
 
-void Retrieve_Data(void) {
-    UART_Print("--- START DATA ---\r\n");
+/* ======================= Logging and sending ======================= */
 
-    uint32_t ptr = 0;
-    // Limit search to 512KB to prevent reading forever
-    const uint32_t SEARCH_LIMIT = 0x080000;
-    char msg[64];
+static void Log_Sample_ToFlash(int16_t gx, int16_t gy, int16_t gz)
+{
+    if (sample_count >= MAX_SAMPLES) return;  // safety measure
 
-    while (ptr < SEARCH_LIMIT) {
-
-        // --- 1. CRITICAL: Reader Page Boundary Logic ---
-        // We must mirror the Writer's logic. If we are close to the end of a page,
-        // we know the Writer skipped these bytes. We must skip them too.
-        // We check for 6 bytes space because that is the size of a Data Packet.
-        if ((ptr % FLASH_PAGE_SIZE) > (FLASH_PAGE_SIZE - 6)) {
-            // Calculate how many bytes to skip to get to the next page
-            ptr += (FLASH_PAGE_SIZE - (ptr % FLASH_PAGE_SIZE));
-            continue; // Force loop to restart at the new aligned address
-        }
-
-        // --- 2. Read Data ---
-        uint8_t m1 = Flash_ReadByte(ptr);
-        uint8_t m2 = Flash_ReadByte(ptr + 1);
-        uint16_t marker = (m1 << 8) | m2;
-
-        // CHECK A: Is it the Header (0xAA55)?
-        if (marker == TEST_HEADER_MARKER) {
-            uint8_t cycle = Flash_ReadByte(ptr + 2);
-            sprintf(msg, "\r\nCYCLE_ID:%d\r\n", cycle);
-            UART_Print(msg);
-            ptr += 4; // Header is 4 bytes
-        }
-        // CHECK B: Is it Empty Flash (0xFFFF)?
-        // Since we handled boundary skipping above, finding FF FF here
-        // usually means we genuinely hit the end of the recorded data.
-        else if (m1 == 0xFF && m2 == 0xFF) {
-            // Double check byte 3 just to be sure it's not a fluke data value
-            if (Flash_ReadByte(ptr + 2) == 0xFF) {
-                UART_Print("--- END DATA (Found Empty Space) ---\r\n");
-                return; // STOP READING
-            } else {
-                // Rare edge case: 0xFFFF was actual gyro data?
-                // Highly unlikely for gyro data, but valid.
-                // Treat as data below.
-            }
-        }
-
-        // CHECK C: Assume it is Data
-        // Note: We don't use 'else' here to catch the rare "FFFF data" case
-        // if we wanted to be 100% strict, but for now, let's use the standard flow.
-        if (marker != TEST_HEADER_MARKER && !(m1 == 0xFF && m2 == 0xFF)) {
-            uint8_t d[6];
-            for(int i=0; i<6; i++) d[i] = Flash_ReadByte(ptr + i);
-
-            int16_t x = (int16_t)(d[1] << 8 | d[0]);
-            int16_t y = (int16_t)(d[3] << 8 | d[2]);
-            int16_t z = (int16_t)(d[5] << 8 | d[4]);
-
-            sprintf(msg, "%d,%d,%d\r\n", x, y, z);
-            UART_Print(msg);
-            ptr += 6;
-        }
+    // If the pointer has already reached the sector's end, then use the next sector
+    if ((flash_write_addr & 0x0FFF) >= (4096 - 6)) {
+        uint32_t next_sector = (flash_write_addr & ~0x0FFF) + 0x1000;
+        Flash_Erase4K(next_sector);
+        flash_write_addr = next_sector;
     }
-    UART_Print("--- END DATA (Limit Reached) ---\r\n");
+
+    /* Save raw X, Y, Z values, 6 bytes per sample */
+    Flash_WriteByte(flash_write_addr++, (uint8_t)(gx & 0xFF));
+    Flash_WriteByte(flash_write_addr++, (uint8_t)((gx >> 8) & 0xFF));
+
+    Flash_WriteByte(flash_write_addr++, (uint8_t)(gy & 0xFF));
+    Flash_WriteByte(flash_write_addr++, (uint8_t)((gy >> 8) & 0xFF));
+
+    Flash_WriteByte(flash_write_addr++, (uint8_t)(gz & 0xFF));
+    Flash_WriteByte(flash_write_addr++, (uint8_t)((gz >> 8) & 0xFF));
+
+    sample_count++;
 }
 
-void Run_Logging_Cycle(void) {
-	char msg[64];
-	sprintf(msg, "LOG: Starting %ds Cycle...\r\n", LOG_DURATION_MS / 1000);
-	UART_Print(msg);
+/*Read all logged data and send it through UART, text format*/
+static void Send_AllData_FromFlash(void)
+{
+    char line[160];
+    uint32_t addr = FLASH_TARGET_ADDRESS;
 
-    HAL_GPIO_WritePin(EXT_LED_GPIO_Port, EXT_LED_Pin, GPIO_PIN_SET);	// LED Solid ON
+    // ----- Accums for average of wi+ and wi- -----
+    float sum_pos_x = 0.0f, sum_pos_y = 0.0f, sum_pos_z = 0.0f;
+    float sum_neg_x = 0.0f, sum_neg_y = 0.0f, sum_neg_z = 0.0f;
+    uint16_t cnt_pos = 0, cnt_neg = 0;
 
-    // 1. Write Header
-    uint8_t header[4];
-    header[0] = (TEST_HEADER_MARKER >> 8) & 0xFF;
-    header[1] = (TEST_HEADER_MARKER) & 0xFF;
-    header[2] = test_cycle_id;
-    header[3] = 0x00;
+    // header for CSV
+    UART_Print("dir,wx_rad_s,wy_rad_s,wz_rad_s,omega_rad_s\r\n");
 
-    // Check page alignment for Header (unlikely to cross, but good practice)
-    if ((current_flash_addr % FLASH_PAGE_SIZE) > (FLASH_PAGE_SIZE - 4)) {
-        current_flash_addr += (FLASH_PAGE_SIZE - (current_flash_addr % FLASH_PAGE_SIZE));
-    }
-    Flash_WriteBuffer(current_flash_addr, header, 4);
-    current_flash_addr += 4;
+    for (uint16_t i = 0; i < sample_count; i++) {
 
-    // 2. Logging Loop
-    uint32_t start_tick = HAL_GetTick();
-    int16_t gx, gy, gz;
-    uint8_t data_row[6];
+        uint8_t b0 = Flash_ReadByte(addr++);
+        uint8_t b1 = Flash_ReadByte(addr++);
+        uint8_t b2 = Flash_ReadByte(addr++);
+        uint8_t b3 = Flash_ReadByte(addr++);
+        uint8_t b4 = Flash_ReadByte(addr++);
+        uint8_t b5 = Flash_ReadByte(addr++);
 
-    while ((HAL_GetTick() - start_tick) < LOG_DURATION_MS) {
-        uint32_t sample_tick = HAL_GetTick();
+        int16_t gx_raw = (int16_t)((b1 << 8) | b0);
+        int16_t gy_raw = (int16_t)((b3 << 8) | b2);
+        int16_t gz_raw = (int16_t)((b5 << 8) | b4);
 
-        // A. Read Sensor
-        L3G4200D_ReadGyro(&gx, &gy, &gz);
+        // Conversion to rad/s
+        float gx_dps = (gx_raw - bias_x) * g_lsb2dps;
+        float gy_dps = (gy_raw - bias_y) * g_lsb2dps;
+        float gz_dps = (gz_raw - bias_z) * g_lsb2dps;
 
-        data_row[0] = gx & 0xFF;
-        data_row[1] = (gx >> 8) & 0xFF;
-        data_row[2] = gy & 0xFF;
-        data_row[3] = (gy >> 8) & 0xFF;
-        data_row[4] = gz & 0xFF;
-        data_row[5] = (gz >> 8) & 0xFF;
+        float gx = gx_dps * (PI_F / 180.0f);
+        float gy = gy_dps * (PI_F / 180.0f);
+        float gz = gz_dps * (PI_F / 180.0f);
+        float omega = sqrtf(gx*gx + gy*gy + gz*gz);
 
-        // B. Check Page Boundary
-        // If current offset + 6 bytes > 256, move to next page
-        if ((current_flash_addr % FLASH_PAGE_SIZE) > (FLASH_PAGE_SIZE - 6)) {
-             // Fill remaining bytes with 0xFF (implicit by skipping) or explicit dummy?
-             // Skipping is fine, retrieving logic handles 0xFF skipping.
-             current_flash_addr += (FLASH_PAGE_SIZE - (current_flash_addr % FLASH_PAGE_SIZE));
+        // dir = +1 for wi+ (first window), -1 for wi- (second window)
+        int8_t dir = (i < split_index) ? 1 : -1;
+
+        // Accum for averages of wi+ and wi-
+        if (dir == 1) {
+            sum_pos_x += gx;
+            sum_pos_y += gy;
+            sum_pos_z += gz;
+            cnt_pos++;
+        } else {
+            sum_neg_x += gx;
+            sum_neg_y += gy;
+            sum_neg_z += gz;
+            cnt_neg++;
         }
 
-        // C. Write Flash
-        Flash_WriteBuffer(current_flash_addr, data_row, 6);
-        current_flash_addr += 6;
+        snprintf(line, sizeof(line),
+                 "%d,%.6f,%.6f,%.6f,%.6f\r\n",
+                 dir, gx, gy, gz, omega);
 
-        // D. Wait for 10ms (100Hz)
-        while ((HAL_GetTick() - sample_tick) < SAMPLE_PERIOD_MS);
+        UART_Print(line);
+    }
+    UART_Print("End of data.\r\n");
+
+    if (cnt_pos == 0 || cnt_neg == 0) {
+        UART_Print("Not enough samples in wi+ / wi- windows to compute calibration.\r\n");
+        return;
     }
 
-    test_cycle_id++;
-    HAL_GPIO_WritePin(EXT_LED_GPIO_Port, EXT_LED_Pin, GPIO_PIN_RESET); // LED OFF
-    UART_Print("LOG: Cycle Complete.\r\n");
+    //Averages of wi+ and wi- per axis
+    float wx_pos = sum_pos_x / (float)cnt_pos;
+    float wy_pos = sum_pos_y / (float)cnt_pos;
+    float wz_pos = sum_pos_z / (float)cnt_pos;
+
+    float wx_neg = sum_neg_x / (float)cnt_neg;
+    float wy_neg = sum_neg_y / (float)cnt_neg;
+    float wz_neg = sum_neg_z / (float)cnt_neg;
+
+    // Bias estimation: b_i = (wi+ - wi-) / 2
+    float bx = (wx_pos - wx_neg) / 2.0f;
+    float by = (wy_pos - wy_neg) / 2.0f;
+    float bz = (wz_pos - wz_neg) / 2.0f;
+
+    // Scale factor error:
+    // s_i = (wi- - wi+ - 2*omega_ref) / (2*omega_ref)
+    float sx = (wx_neg - wx_pos - 2.0f * OMEGA_REF_RAD_S) / (2.0f * OMEGA_REF_RAD_S);
+    float sy = (wy_neg - wy_pos - 2.0f * OMEGA_REF_RAD_S) / (2.0f * OMEGA_REF_RAD_S);
+    float sz = (wz_neg - wz_pos - 2.0f * OMEGA_REF_RAD_S) / (2.0f * OMEGA_REF_RAD_S);
+
+    // Calibration summary
+    UART_Print("---- Calibration summary (per axis) ----\r\n");
+
+    snprintf(line, sizeof(line),
+             "wx+: %.6f rad/s, wx-: %.6f rad/s, bx: %.6f rad/s, sx: %.6f\r\n",
+             wx_pos, wx_neg, bx, sx);
+    UART_Print(line);
+
+    snprintf(line, sizeof(line),
+             "wy+: %.6f rad/s, wy-: %.6f rad/s, by: %.6f rad/s, sy: %.6f\r\n",
+             wy_pos, wy_neg, by, sy);
+    UART_Print(line);
+
+    snprintf(line, sizeof(line),
+             "wz+: %.6f rad/s, wz-: %.6f rad/s, bz: %.6f rad/s, sz: %.6f\r\n",
+             wz_pos, wz_neg, bz, sz);
+    UART_Print(line);
+
+    UART_Print("----------------------------------------\r\n");
 }
 
 /* USER CODE END 0 */
@@ -563,76 +493,146 @@ void Run_Logging_Cycle(void) {
   */
 int main(void)
 {
-
-  /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
-
   /* MCU Configuration--------------------------------------------------------*/
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
-
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
-  /* Configure the system clock */
   SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_SPI2_Init();
   MX_I2C1_Init();
-  /* USER CODE BEGIN 2 */
-  HAL_Delay(5000);				// User experience delay
-  UART_Print("\r\n=== MO-2 GYRO CHAMBER SYSTEM ===\r\n");
-
+  /*Gyroscope initialization + bias */
   L3G4200D_Init();
-  Flash_ReadID();				// Verify SPI Flash
-  Flash_ClearWriteProtect();	// Ensure we can write
+  Gyro_Calibrate(200);
 
-  UART_Print("IDLE: 'e'=Erase, 'r'=Retrieve, BTN=Log\r\n");
+  EXT_LED_ON();  // LED ON
 
-  uint8_t uart_rx;
+  /* USER CODE BEGIN 2 */
+
+  UART_Print("System boot.\r\n");
+  /*Initialize FLASH and clean logging*/
+  Flash_ClearWriteProtect();
+  Flash_ReadID();
+  Flash_Erase4K(FLASH_TARGET_ADDRESS);
+  flash_write_addr = FLASH_TARGET_ADDRESS;
+  sample_count     = 0;
+  split_index = 0;
+
+  UART_Print("Waiting 20 s to start logging...\r\n");
+
+  g_state       = STATE_WAIT_PLACEMENT;
+  t_start_wait  = HAL_GetTick();
+  t_start_measure = 0;
+  t_last_sample = 0;
+  t_last_blink = 0;
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	// 1. Check UART Commands
-	if (HAL_UART_Receive(&huart2, &uart_rx, 1, 10) == HAL_OK) {
-		if (uart_rx == 'e') Perform_Bulk_Erase();
-		if (uart_rx == 'r') Retrieve_Data();
-	}
+      uint32_t now = HAL_GetTick();
 
-	// 2. Check Button (Active Low)
-	if (HAL_GPIO_ReadPin(EXT_PUSH_BUTTON_GPIO_Port, EXT_PUSH_BUTTON_Pin) == GPIO_PIN_RESET) {
-	  HAL_Delay(50);	// Debounce
-	  if (HAL_GPIO_ReadPin(EXT_PUSH_BUTTON_GPIO_Port, EXT_PUSH_BUTTON_Pin) == GPIO_PIN_RESET) {
-		  Run_Logging_Cycle();
-		  // Wait for release
-		  while(HAL_GPIO_ReadPin(EXT_PUSH_BUTTON_GPIO_Port, EXT_PUSH_BUTTON_Pin) == GPIO_PIN_RESET);
-	  }
-	}
+      switch (g_state)
+      {
+      case STATE_WAIT_PLACEMENT:
+          /* 20s to place the gyroscope on the table */
+          if ((now - t_start_wait) >= START_DELAY_MS) {
+              UART_Print("Starting gyro logging (POS direction, wi+). Set rate table to +omega.\r\n");
+              g_state         = STATE_MEASURE_POS;
+              t_start_measure = now;
+              t_last_sample   = now;
+              t_last_blink    = now;
+              /* LED starts blinking */
+          }
+          break;
 
-	// 3. IDLE Blink
-	HAL_GPIO_TogglePin(EXT_LED_GPIO_Port, EXT_LED_Pin);
-	HAL_Delay(500);
+      case STATE_MEASURE_POS:
+          /* logging while MEASURE_POS_WINDOW_MS */
+          if ((now - t_start_measure) >= MEASURE_POS_WINDOW_MS) {
+              UART_Print("First logging window (wi+) finished.\r\n");
+              /* Index is saved when wi+ is over */
+              split_index = sample_count;
 
-    /* USER CODE END WHILE */
+              UART_Print("Reverse rotation direction on the rate table (to wi-) in 20 s...\r\n");
+              g_state        = STATE_WAIT_REVERSE;
+              t_start_reverse = now;
+              EXT_LED_ON();  // LED will remain ON
+          } else {
+              /* logging data */
+              if ((now - t_last_sample) >= SAMPLE_PERIOD_MS) {
+                  t_last_sample = now;
+                  int16_t gx, gy, gz;
+                  L3G4200D_ReadGyro(&gx, &gy, &gz);
+                  Log_Sample_ToFlash(gx, gy, gz);
+              }
 
-    /* USER CODE BEGIN 3 */
+              /* LED blinking */
+              if ((now - t_last_blink) >= LOG_LED_BLINK_MS) {
+                  t_last_blink = now;
+                  EXT_LED_TOGGLE();
+              }
+          }
+          break;
+
+      case STATE_WAIT_REVERSE:
+          if ((now - t_start_reverse) >= REVERSE_DELAY_MS) {
+              UART_Print("Starting gyro logging (NEG direction, wi-).\r\n");
+              g_state         = STATE_MEASURE_NEG;
+              t_start_measure = now;
+              t_last_sample   = now;
+              t_last_blink    = now;
+          }
+          break;
+
+      case STATE_MEASURE_NEG:
+          /* logging while MEASURE_NEG_WINDOW_MS */
+          if ((now - t_start_measure) >= MEASURE_NEG_WINDOW_MS) {
+              UART_Print("Second logging window (wi-) finished. Going to IDLE.\r\n");
+              g_state = STATE_IDLE;
+              EXT_LED_ON(); // LED ON
+          } else {
+              if ((now - t_last_sample) >= SAMPLE_PERIOD_MS) {
+                  t_last_sample = now;
+                  int16_t gx, gy, gz;
+                  L3G4200D_ReadGyro(&gx, &gy, &gz);
+                  Log_Sample_ToFlash(gx, gy, gz);
+              }
+
+              if ((now - t_last_blink) >= LOG_LED_BLINK_MS) {
+                  t_last_blink = now;
+                  EXT_LED_TOGGLE();
+              }
+          }
+          break;
+
+      case STATE_IDLE:
+      {
+          uint8_t rx;
+          if (HAL_UART_Receive(&huart2, &rx, 1, 10) == HAL_OK) {
+              if (rx == 'D' || rx == 'd') {
+                  Send_AllData_FromFlash();
+              } else {
+                  UART_Print("Unknown cmd. Send 'D' to download data.\r\n");
+              }
+          }
+      }
+          break;
+
+      default:
+          g_state = STATE_IDLE;
+          break;
+      }
+
   }
-  /* USER CODE END 3 */
+  /* USER CODE END WHILE */
+
+  /* USER CODE BEGIN 3 */
 }
+/* USER CODE END 3 */
+
 
 /**
   * @brief System Clock Configuration
