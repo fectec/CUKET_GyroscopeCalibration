@@ -78,6 +78,49 @@ Detailed documentation regarding the hardware design is maintained in a dedicate
 The firmware is split into different branches depending on the test. The <code>thermal_chamber</code> branch contains the code for the temperature tests. The <code>rotary_table</code> branch contains the code for the calibration on the rotation table. Simply switch to the branch that matches the test you are currently running.
 </p>
 
+<ol>
+  <li>
+    <p align="justify">
+      <strong>Clone the Repository:</strong> Open your terminal, navigate to your STM32CubeIDE workspace directory, and execute the following command:
+    </p>
+    <pre><code>git clone https://github.com/fectec/MO-2_GyroscopeVerification.git</code></pre>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Import Project:</strong> In STM32CubeIDE, go to the <strong>File</strong> tab and select <strong>Open Projects from File System</strong>. In the "Import source" directory field, browse and select the cloned <code>MO-2_GyroscopeVerification</code> folder. Ensure that <em>"Search for nested projects"</em> and <em>"Detect and configure project natures"</em> are checked, then click <strong>Finish</strong>.
+    </p>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Flash Firmware:</strong> Connect the NUCLEO-F446RE board to the PC via USB. Navigate to <code>Core/Src/main.c</code> in the project explorer to verify the source. Finally, click the <strong>Run</strong> button (Play icon) to compile the code and program the board.
+    </p>
+  </li>
+</ol>
+
+<p align="justify">
+To switch between the thermal test and the rotary table calibration, simply change the active Git branch in your terminal. This operation will automatically update the source code within your STM32CubeIDE workspace.
+</p>
+
+<p align="justify">
+<strong>For Thermal Chamber Testing:</strong>
+</p>
+<pre><code>git checkout thermal_chamber</code></pre>
+
+<p align="justify">
+<strong>For Rotary Table Calibration:</strong>
+</p>
+<pre><code>git checkout rotary_table</code></pre>
+
+<p align="justify">
+After executing the checkout command, return to STM32CubeIDE. Open <code>Core/Src/main.c</code> to verify the change, and click the <strong>Run</strong> button to program the board with the selected test firmware.
+</p>
+
+<p align="justify">
+Note: The repository defaults to the <code>thermal_chamber</code> branch upon cloning.
+</p>
+
 <h2>References</h2>
 
 <ol>
