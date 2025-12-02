@@ -1,0 +1,13 @@
+*.bin
+*.elf
+*.list
+*.map
+!objects.list
+*.d
+*.o
+*.su
+.metadata
+.settings
+[Rr]elease
+[Dd]ebug
+.launch
