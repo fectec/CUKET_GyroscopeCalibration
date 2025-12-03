@@ -56,7 +56,7 @@
 #define L3G4200D_OUT_X_L    			0x28
 
 // Test Configuration
-#define LOG_DURATION_MS                 60000   // 60s cycle
+#define LOG_DURATION_MS                 10000   // 60s cycle
 #define SAMPLE_PERIOD_MS                10      // 10ms = 100Hz
 #define TEST_HEADER_MARKER              0xAA55  // Number for data start
 
@@ -436,61 +436,47 @@ void Retrieve_Data(void) {
     // Limit search to 512KB to prevent reading forever
     const uint32_t SEARCH_LIMIT = 0x080000;
     char msg[64];
-
     while (ptr < SEARCH_LIMIT) {
 
-        // --- 1. CRITICAL: Reader Page Boundary Logic ---
-        // We must mirror the Writer's logic. If we are close to the end of a page,
-        // we know the Writer skipped these bytes. We must skip them too.
-        // We check for 6 bytes space because that is the size of a Data Packet.
+        // 1) Saltar borde de página
         if ((ptr % FLASH_PAGE_SIZE) > (FLASH_PAGE_SIZE - 6)) {
-            // Calculate how many bytes to skip to get to the next page
             ptr += (FLASH_PAGE_SIZE - (ptr % FLASH_PAGE_SIZE));
-            continue; // Force loop to restart at the new aligned address
+            continue;
         }
 
-        // --- 2. Read Data ---
         uint8_t m1 = Flash_ReadByte(ptr);
         uint8_t m2 = Flash_ReadByte(ptr + 1);
         uint16_t marker = (m1 << 8) | m2;
 
-        // CHECK A: Is it the Header (0xAA55)?
+        // 2) HEADER
         if (marker == TEST_HEADER_MARKER) {
             uint8_t cycle = Flash_ReadByte(ptr + 2);
             sprintf(msg, "\r\nCYCLE_ID:%d\r\n", cycle);
             UART_Print(msg);
-            ptr += 4; // Header is 4 bytes
-        }
-        // CHECK B: Is it Empty Flash (0xFFFF)?
-        // Since we handled boundary skipping above, finding FF FF here
-        // usually means we genuinely hit the end of the recorded data.
-        else if (m1 == 0xFF && m2 == 0xFF) {
-            // Double check byte 3 just to be sure it's not a fluke data value
-            if (Flash_ReadByte(ptr + 2) == 0xFF) {
-                UART_Print("--- END DATA (Found Empty Space) ---\r\n");
-                return; // STOP READING
-            } else {
-                // Rare edge case: 0xFFFF was actual gyro data?
-                // Highly unlikely for gyro data, but valid.
-                // Treat as data below.
-            }
+            ptr += 4;         // avanzas 4
+            continue;
         }
 
-        // CHECK C: Assume it is Data
-        // Note: We don't use 'else' here to catch the rare "FFFF data" case
-        // if we wanted to be 100% strict, but for now, let's use the standard flow.
-        if (marker != TEST_HEADER_MARKER && !(m1 == 0xFF && m2 == 0xFF)) {
-            uint8_t d[6];
-            for(int i=0; i<6; i++) d[i] = Flash_ReadByte(ptr + i);
-
-            int16_t x = (int16_t)(d[1] << 8 | d[0]);
-            int16_t y = (int16_t)(d[3] << 8 | d[2]);
-            int16_t z = (int16_t)(d[5] << 8 | d[4]);
-
-            sprintf(msg, "%d,%d,%d\r\n", x, y, z);
-            UART_Print(msg);
-            ptr += 6;
+        // 3) ZONA VACÍA (fin de datos)
+        if (m1 == 0xFF && m2 == 0xFF && Flash_ReadByte(ptr + 2) == 0xFF) {
+            UART_Print("--- END DATA (Found Empty Space) ---\r\n");
+            return;
         }
+
+        // 4) TODO LO DEMÁS = DATOS
+        uint8_t d[6];
+        for (int i = 0; i < 6; i++) {
+            d[i] = Flash_ReadByte(ptr + i);
+        }
+
+        int16_t x = (int16_t)(d[1] << 8 | d[0]);
+        int16_t y = (int16_t)(d[3] << 8 | d[2]);
+        int16_t z = (int16_t)(d[5] << 8 | d[4]);
+
+        sprintf(msg, "%d,%d,%d\r\n", x, y, z);
+        UART_Print(msg);
+
+        ptr += 6;   // SIEMPRE avanzas 6 aquí
     }
     UART_Print("--- END DATA (Limit Reached) ---\r\n");
 }

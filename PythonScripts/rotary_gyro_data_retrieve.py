@@ -5,7 +5,7 @@ import sys
 from datetime import datetime
 
 # ================= CONFIGURATION =================
-COM_PORT = 'COM3'  # CHANGE THIS IF NEEDED
+COM_PORT = 'COM4'  # CHANGE THIS IF NEEDED
 BAUD_RATE = 115200
 TIMEOUT = 5
 
@@ -13,7 +13,7 @@ TIMEOUT = 5
 SENSITIVITY_250DPS = 0.00875043752
 
 # Calibration Settings
-TABLE_GROUND_TRUTH_DPS = 25.0         
+TABLE_GROUND_TRUTH_DPS = 5.0         
 
 # =================================================
 

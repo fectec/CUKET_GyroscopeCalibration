@@ -60,8 +60,8 @@ all: main-build
 main-build: MO-2_GyroscopeVerification.elf secondary-outputs
 
 # Tool invocations
-MO-2_GyroscopeVerification.elf MO-2_GyroscopeVerification.map: $(OBJS) $(USER_OBJS) C:\Users\fecte\STM32CubeIDE\workspace_1.19.0\MO-2_GyroscopeVerification\STM32F446RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "MO-2_GyroscopeVerification.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\fecte\STM32CubeIDE\workspace_1.19.0\MO-2_GyroscopeVerification\STM32F446RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="MO-2_GyroscopeVerification.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+MO-2_GyroscopeVerification.elf MO-2_GyroscopeVerification.map: $(OBJS) $(USER_OBJS) C:\Users\ximen\Documents\GitHub\MO-2_GyroscopeVerification\STM32F446RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "MO-2_GyroscopeVerification.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\ximen\Documents\GitHub\MO-2_GyroscopeVerification\STM32F446RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="MO-2_GyroscopeVerification.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
