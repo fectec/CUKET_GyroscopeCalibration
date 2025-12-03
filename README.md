@@ -141,12 +141,14 @@ where <img src="https://latex.codecogs.com/svg.latex?\bar{\omega}_{i^+}" /> is t
 <ol> <li>In STM32CubeIDE, open <code>Core/Src/main.c</code> and define the log duration in milliseconds by modifying <code>#define LOG_DURATION_MS</code>. This sets how long the system records data per button press.</li> <li>In the Python script (<code>rotary_gyro_data_retrieve.py</code>), update the variable <code>TABLE_GROUND_TRUTH_DPS</code> to match the angular velocity (deg/s) you will set on the rotary table.</li> <li>Power the system using the Battery Pack (E5V) or Power Bank (U5V). If using E5V, turn on the switch. The PCB LED will start toggling (blinking), indicating it is in Idle mode.</li> <li>Place the system on the rotary table in the <strong>+Z orientation</strong>. Ensure no USB cables are connected to the PC.</li> <li>Configure the rotary table to spin Counter-Clockwise (CCW) at the velocity defined in step 2 and start the rotation.</li> <li>Press the button on the PCB to start logging. The LED will stop blinking and remain <strong>solid ON</strong>. When the cycle finishes, the LED will return to blinking. Stop the rotary table.</li> <li>Flip the system and place it on the rotary table in the <strong>-Z orientation</strong>.</li> <li>Start the rotary table spinning Counter-Clockwise (CCW) at the same velocity.</li> <li>Press the button to start the second log. The LED will turn solid ON. Wait for it to return to blinking, then stop the table.</li> <li><strong>Data Retrieval:</strong> <ul> <li>If using <strong>E5V</strong>: Do <strong>not</strong> turn off the switch or remove batteries. Connect the USB cable from the NUCLEO-F446RE to the PC.</li> <li>If using <strong>U5V</strong>: Disconnect the USB cable from the power bank and connect it to the PC.</li> </ul> </li> <li>Open Device Manager on Windows and identify the COM port assigned to <strong>STMicroelectronics STLink Virtual COM Port</strong>.</li> <li>Update the <code>COM_PORT</code> variable in the Python script with this value (e.g., 'COM3') and run the script.</li> <li>The script will generate a text file containing the logs and a plot displaying the Raw Sensor Data (deg/s), Calibrated Sensor Data (deg/s), the measured averages <img src="https://latex.codecogs.com/svg.latex?\bar{\omega}{z^+}" /> and <img src="https://latex.codecogs.com/svg.latex?\bar{\omega}{z^-}" />, and the calculated calibration parameters <img src="https://latex.codecogs.com/svg.latex?b_z" /> and <img src="https://latex.codecogs.com/svg.latex?s_z"/>.</li></ol></p>
 
 <p align="center">
-<img src="https://github.com/user-attachments/assets/2b4d0009-5492-4e58-9276-fc4c5b9b3d07" alt="Example Calibration Plot" width="80%" />
+<img src="https://github.com/user-attachments/assets/e83f2797-a672-4e6e-af5c-ffd23b0de8ae" alt="Example Calibration Plot 5 dps" width="80%" />
+</p>
+
+<p align="center">
+<img src="https://github.com/user-attachments/assets/27a8258c-fb3d-402c-8485-eae5781bb0fd" alt="Example Calibration Plot 25 dps" width="80%" />
 </p>
 
 </li>
-
-
 
 <p align="justify"> <strong>IMPORTANT:</strong> Before starting a new test (a new pair of +Z/-Z rotations), you must erase the previous data from the flash memory. Connect the system to the PC, open a Serial Terminal (like PuTTY or the Arduino Serial Monitor) on the correct COM port, and send the character <strong>'e'</strong>. This clears the memory. Failure to do this will result in corrupted data when reading the new test. </p>
  
