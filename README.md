@@ -15,23 +15,31 @@ Gyroscopes are inertial sensors used to measure the angular velocity of the plat
 </p>
 
 <p align="justify">
-For the MO-2 mission, one primary objective is to observe the satellite's condition and reflect status data—specifically angular velocity—into a game designed to inspire interest in space among a wider audience. The selected sensor for this task, chosen for its extensive flight heritage, is the L3G4200D. Selecting a sensor without a proven space record would necessitate complex and costly qualification procedures, such as radiation testing.
+For the MO-2 mission, one primary objective is to observe the satellite's condition and reflect status data—specifically angular velocity—into a game designed to inspire interest in space among a wider audience. The selected sensor for this task, chosen for its flight heritage, is the MEMS gyroscope L3G4200D. Selecting a sensor without a proven space record would necessitate complex and costly qualification procedures, such as radiation testing.
 </p>
 
 <p align="justify">
-To ensure accurate data, a calibration procedure is performed prior to the mission to estimate deterministic error terms. While a zero-order calibration can simply estimate biases, more comprehensive approaches, such as the six-position method, estimate error terms for all three axes. This latter method typically involves rotating the gyroscope on a turntable at a known velocity to produce a signal strong enough for accurate calibration. This mechanical assistance is indispensable for low-cost sensors, as they often lack the sensitivity to detect the Earth's turn rate [2].
+MEMS gyroscopes are widely adopted in CubeSat missions due to their compact size, low power consumption, cost-effectiveness, and precision. However, their accuracy tends to degrade over time as a result of  combined errors, including noise, biases, drift, and scale factor instability. If left uncorrected, these deterministic errors accumulate, leading to progressively larger discrepancies in position and orientation estimates, a phenomenon well-documented in previous missions utilizing MEMS sensors for Attitude Determination and Control Systems (ADCS) [3].
 </p>
 
 <p align="justify">
-Consequently, the task assigned to the ITESM student group was to validate the functionality of the MO-2 gyroscope mounted on a Digilent Pmod verification board and to perform the calibration tests.
+Inertial sensor errors are classified into random and deterministic categories. Deterministic errors, such as biases and scale factors, must be corrected through calibration. Furthermore, because these errors in MEMS sensors are highly sensitive to temperature fluctuations, the calibration model must explicitly account for thermal dependencies to prevent significant accuracy degradation over the mission duration [3].
 </p>
 
 <p align="justify">
-The scope included conducting controlled laboratory experiments: first, executing the six-position method on a rate table to generate calibration data, and second, subjecting the gyroscope to thermal chamber testing to evaluate its temperature-dependent behavior across the standard space operational range (-20°C to +80°C).
+To ensure accurate data, a calibration procedure is performed prior to the mission to estimate deterministic error terms. While a zero-order calibration can simply estimate biases, more comprehensive approaches, such as the six-position method, estimate error terms for all three axes. This latter method typically involves rotating the gyroscope on a rotary table at a known velocity to produce a signal strong enough for accurate calibration. This mechanical assistance is indispensable for low-cost sensors, as they often lack the sensitivity to detect the Earth's turn rate [2].
 </p>
 
 <p align="justify">
-A significant technical challenge in these tests involves data retrieval and cabling. In the proposed setup, a NUCLEO-F446RET6 development board connects to the gyroscope to read data. If the board is placed off the rotation table, long jumper wires are required to reach the spinning sensor, creating a risk of disconnection.
+Consequently, the task assigned to the ITESM student group was to validate the functionality of the MO-2 L3G4200D gyroscope mounted on a Digilent Pmod verification board and to perform the calibration tests.
+</p>
+
+<p align="justify">
+The scope included conducting controlled laboratory experiments: first, executing the six-position method to generate calibration data, and second, subjecting the gyroscope to thermal chamber testing to evaluate its temperature-dependent behavior across the standard space operational range.
+</p>
+
+<p align="justify">
+A significant technical challenge in these tests involves data retrieval and cabling. In the proposed setup, a NUCLEO-F446RET6 development board connects to the gyroscope to read data. If the board is placed off the rotary table, long jumper wires are required to reach the spinning sensor, creating a risk of disconnection.
 </p>
 
 <p align="justify">
@@ -43,46 +51,143 @@ To resolve these issues, an MT25QL01GBBB8ESF-0SIT TR flash memory module, also w
 </p>
 
 <p align="justify">
-Furthermore, to facilitate a safe and repeatable testing procedure, a custom Printed Circuit Board (PCB) was designed. This integration combines all necessary components onto a single platform, ensuring stable electrical connections while simplifying the physical mounting of the hardware onto the rotation table and inside the thermal chamber.
+Furthermore, to facilitate a safe and repeatable testing procedure, a custom Printed Circuit Board (PCB) was designed. This integration combines all necessary components onto a single platform, ensuring stable electrical connections while simplifying the physical mounting of the hardware onto the rotary table and inside the thermal chamber.
 </p>
+
+<h2>Gyroscope Error Model</h2>
+
+<p align="justify">
+An ideal MEMS gyroscope is characterized by the absence of noise or offset and perfect linearity—meaning it produces a strictly proportional and predictable output for any given rotation. However, real-world sensors are subject to several deterministic errors [3]:
+</p>
+
+<ul>
+  <li>
+    <p align="justify">
+      <strong>Bias (Offset):</strong> The deviation of the gyroscope output from the expected theoretical value when the device is stationary. This "zero reading" tends to drift over time due to the integration of inherent device imperfections and internal noise [3].
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      <strong>Scale Factor Error:</strong> A metric describing the deviation of the sensor's sensitivity from unity. It quantifies the discrepancy between the sensor's measured output range and the actual input rotation range [3].
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      <strong>Non-orthogonalities (Misalignment):</strong> The error resulting from imperfect alignment of the gyroscope's sensing axes relative to an ideal mutually orthogonal coordinate system [3].
+    </p>
+  </li>
+</ul>
+
+<p align="justify">
+The output of a typical MEMS gyroscope can be modeled as a function of the true input angular velocity and the sensor's deterministic error variables. This relationship is expressed as [3]:
+</p>
+
+<p align="center">
+  <img src="https://latex.codecogs.com/svg.latex?\mathbf{\hat{\omega}}=\mathbf{K}\mathbf{\omega}+\mathbf{b}\quad(1)" alt="Error Model (1)" />
+</p>
+
+<p align="justify">
+Where <img src="https://latex.codecogs.com/svg.latex?\mathbf{\hat{\omega}}" /> represents the angular velocity recorded by the gyroscope (measured), and <img src="https://latex.codecogs.com/svg.latex?\mathbf{\omega}" /> represents the true input angular velocity. <img src="https://latex.codecogs.com/svg.latex?\mathbf{b}" /> represents the bias vector. <img src="https://latex.codecogs.com/svg.latex?\mathbf{K}" /> is the matrix accounting for non-orthogonality and scale factors [3]:
+</p>
+
+<p align="center">
+  <img src="https://latex.codecogs.com/svg.latex?\mathbf{K}=\begin{bmatrix}m_{xx}&m_{xy}&m_{xz}\\m_{yx}&m_{yy}&m_{yz}\\m_{zx}&m_{zy}&m_{zz}\end{bmatrix}\quad(2)" alt="Matrix K (2)" />
+</p>
+
+<p align="justify">In this matrix, the diagonal elements <img src="https://latex.codecogs.com/svg.latex?(m_{xx},\;m_{yy},\;m_{zz})">
+represent the scale factors, while the off-diagonal elements <img src="https://latex.codecogs.com/svg.latex?(m_{ij})">
+ represent non-orthogonality (misalignment) errors [3].</p>
+
+<p align="justify">
+ Expanding Equation (1) into matrix form yields [3]:
+</p>
+
+<p align="center">
+  <img src="https://latex.codecogs.com/svg.latex?\begin{bmatrix}\hat{\omega}_x\\\hat{\omega}_y\\\hat{\omega}_z\end{bmatrix}=\begin{bmatrix}m_{xx}&m_{xy}&m_{xz}\\m_{yx}&m_{yy}&m_{yz}\\m_{zx}&m_{zy}&m_{zz}\end{bmatrix}\begin{bmatrix}\omega_x\\\omega_y\\\omega_z\end{bmatrix}+\begin{bmatrix}b_x\\b_y\\b_z\end{bmatrix}\quad(3)" alt="Expanded Matrix Equation (3)" />
+</p>
+
+<p align="justify">Since misalignment angles are small in low-cost gyroscopes, only scale factors and bias errors are typically considered. The reduced model is therefore [2]:</p>
+
+<p align="center">
+  <img src="https://latex.codecogs.com/svg.latex?\begin{bmatrix}\hat{\omega}_x\\\hat{\omega}_y\\\hat{\omega}_z\end{bmatrix}=\begin{bmatrix}1 + s_{x}&0&0\\0&1 + s_{y}&0\\0&0&1 + s_{z}\end{bmatrix}\begin{bmatrix}\omega_x\\\omega_y\\\omega_z\end{bmatrix}+\begin{bmatrix}b_x\\b_y\\b_z\end{bmatrix}\quad(4)" alt="Reduced Model (4)" />
+</p>
+
+<p align="justify"> In order to solve Equation (4), a combination of static and dynamic tests using a rotary table will be performed [3]. This procedure is explained below.<p>
 
 <h2>Six-Position Calibration as Model-based Gyroscope Calibration</h2>
 
-<p align="justify">
-The six-position calibration method is a model-based approach executed before the mission starts to estimate the constant error terms of the gyroscope. This procedure requires rotating the gyroscope into six distinct orientations: twice per axis, once with the axis pointing in the positive direction and once in the negative direction. Each rotation is sustained for a duration <em>T</em>, allowing the measurements to be averaged to eliminate sensor noise. For a single axis, this calculation simplifies into a system of two equations with two unknowns: bias and scale factor [2].
-</p>
+<h3>Gyroscope Biases - Static Test</h3>
 
 <p align="justify">
-For a single axis <em>i</em>, the calculation is expressed as:
+To determine the bias for each axis, the orthogonal gyroscope triad is positioned on a leveled surface. Each sensitive axis is oriented alternately in the upward and downward directions, resulting in a total of six distinct measurement positions. The bias is then calculated as [3]:
 </p>
 
 <p align="center">
-  <img src="https://latex.codecogs.com/svg.latex?s_i=\frac{\bar{\omega}_{i^+}-\bar{\omega}_{i^-}-2\omega_i}{2\omega_i}" alt="Scale Factor Equation" />
-  <br><br>
-  <img src="https://latex.codecogs.com/svg.latex?b_i=\frac{\bar{\omega}_{i^+}+\bar{\omega}_{i^-}}{2}" alt="Bias Equation" />
-
-<p align="justify">
-where <img src="https://latex.codecogs.com/svg.latex?\bar{\omega}_{i^+}" /> is the average gyroscope output for axis <em>i</em> while pointing in the positive direction (up), <img src="https://latex.codecogs.com/svg.latex?\bar{\omega}_{i^-}" /> is the average output for axis <em>i</em> while pointing in the negative direction (down), and <img src="https://latex.codecogs.com/svg.latex?\omega_i" /> is the ground truth (GT) angular velocity of the turntable. Solving the equations yields the gyroscope axis bias, <em>b<sub>i</sub></em>, and the scale factor, <em>s<sub>i</sub></em> [2].
+  <img src="https://latex.codecogs.com/svg.latex?b_i=\frac{\bar{\omega}_{i^{up}}+\bar{\omega}_{i^{down}}}{2}\quad(5)" alt="Bias Calculation (5)" />
 </p>
 
-<p align="justify">For this project, calibration is performed specifically for the z-axis. The formulas are adapted as follows:</p>
+<p align="justify">
+Where <img src="https://latex.codecogs.com/svg.latex?b_i" /> is the bias for each axis, and <img src="https://latex.codecogs.com/svg.latex?\bar{\omega}_{i^{up}}" /> and <img src="https://latex.codecogs.com/svg.latex?\bar{\omega}_{i^{down}}" /> represent the measured angular rates recorded by the gyroscope when pointing upward and downward, respectively [3].
+</p>
+
+<h3> Gyroscope Scale Factor Errors - Dynamic Test</h3>
+
+<p align="justify">
+The scale factor errors are determined using a procedure similar to the bias calculation, but this time a rotary table is employed to spin the gyroscope triad both clockwise and counter-clockwise for each sensitive axis (six different measurements). The scale factor error for a given axis <em>i</em> is calculated as [3]:
+</p>
 
 <p align="center">
-  <img src="https://latex.codecogs.com/svg.latex?s_z=\frac{\bar{\omega}_{z^+}-\bar{\omega}_{z^-}-2\omega_z}{2\omega_z}" alt="Scale Factor Equation" />
-  <br><br>
-  <img src="https://latex.codecogs.com/svg.latex?b_z=\frac{\bar{\omega}_{z^+}+\bar{\omega}_{z^-}}{2}" alt="Bias Equation" />
+  <img src="https://latex.codecogs.com/svg.latex?s_i=\frac{\bar{\omega}_{i^{cw}}+\bar{\omega}_{i^{ccw}}}{2\omega_{ref}}-1\quad(6)" alt="Scale Error Factor Calculation (6)" />
+</p>
 
-<p align="justify"> The Gyroscope Error Model for this axis is defined as: </p>
+<p align="justify">
+Where <img src="https://latex.codecogs.com/svg.latex?s_i" /> is the scale factor error for the pertinent axis, <img src="https://latex.codecogs.com/svg.latex?\bar{\omega}_{i^{cw}}" /> and <img src="https://latex.codecogs.com/svg.latex?\bar{\omega}_{i^{ccw}}" /> represent the angular rates measured by the gyroscope when spinning clockwise and counter-clockwise respectively, and <img src="https://latex.codecogs.com/svg.latex?\omega_{ref}" /> is the known reference angular velocity of the rotary table or ground truth (GT) [3].
+</p>
 
-<p align="center"> <img src="https://latex.codecogs.com/svg.latex?\hat{\omega}_{z}=(1+s_z)\cdot\omega_z+b_z" alt="Error Model" /> </p>
+<h4>Note</h4>
 
-<p align="justify"> Where <img src="https://latex.codecogs.com/svg.latex?\hat{\omega}_{z}" /> represents the raw measured gyroscope angular velocity data, and <img src="https://latex.codecogs.com/svg.latex?\omega_z" /> represents the calibrated true gyroscope angular velocity data. </p>
+<p align="justify">
+For both bias and scale factor error, the bar notation (<img src="https://latex.codecogs.com/svg.latex?\bar{\omega}" />) indicates that each measurement is sustained for a duration <em>T</em>, allowing the measurements to be averaged to eliminate sensor noise.
+</p>
 
-<p align="justify"> To calibrate, we invert this equation. For every measurement <img src="https://latex.codecogs.com/svg.latex?\hat{\omega}_{z}" />, we use the calculated <em>b<sub>z</sub></em> and <em>s<sub>z</sub></em> to obtain the true angular velocity: </p>
+<h3>Gyroscope Calibration</h3>
 
-<p align="center"> <img src="https://latex.codecogs.com/svg.latex?\omega_z=\frac{\hat{\omega}_{z}-b_z}{1+s_z}" alt="Calibration Formula" /> </p>
+<p align="justify"> To calibrate the sensor and recover the true angular velocity vector <img src="https://latex.codecogs.com/svg.latex?\mathbf{\omega}" />, the error model in Equation (1) must be inverted.</p>
 
-<p align="justify"> In this model, when the raw measurement <img src="https://latex.codecogs.com/svg.latex?\hat{\omega}_{z}"/> equals the average positive reading <img src="https://latex.codecogs.com/svg.latex?\bar{\omega}_{z^+}"/>, the result equals the positive Ground Truth (GT). Similarly, when the raw measurement equals <img src="https://latex.codecogs.com/svg.latex?\bar{\omega}_{z^-}"/>, the result equals the negative Ground Truth (-GT). All other values are fitted according to this linear relationship. </p>
+<p align="center"> <img src="https://latex.codecogs.com/svg.latex?\mathbf{\omega}=\mathbf{K}^{-1}(\mathbf{\hat{\omega}}-\mathbf{b})\quad(7)" alt="Inverse Error Model (7)" /> </p>
+
+<p align="center">
+  <img src="https://latex.codecogs.com/svg.latex?\begin{bmatrix}\omega_x\\\omega_y\\\omega_z\end{bmatrix}=\begin{bmatrix}1 + s_{x}&0&0\\0&1 + s_{y}&0\\0&0&1 + s_{z}\end{bmatrix}^{-1}\left(\begin{bmatrix}\hat{\omega}_x\\\hat{\omega}_y\\\hat{\omega}_z\end{bmatrix}-\begin{bmatrix}b_x\\b_y\\b_z\end{bmatrix}\right)\quad(8)" alt="Inverse Error Matrix Model (8)" />
+</p>
+
+<p align="center">
+  <img src="https://latex.codecogs.com/svg.latex?\omega_{x}=\frac{\hat{\omega}_{x}-b_{x}}{1 + s_{x}},\quad\omega_{y}=\frac{\hat{\omega}_{y}-b_{y}}{1 + s_{y}},\quad\omega_{z}=\frac{\hat{\omega}_{z}-b_{z}}{1 + s_{z}}\quad(9)" alt="Scalar Calibration Formulas (9)" />
+</p>
+
+<h2>Thermal Calibration</h2>
+
+<p align="justify">
+Thermal calibration is performed to model the temperature dependencies of the gyroscope's deterministic errors: bias and scale factor. Two primary methods are employed for this characterization [3]:
+
+</p>
+
+<ul>
+  <li>
+    <p align="justify">
+      <strong>Thermal Soak Method:</strong> The MEMS sensor is placed inside a thermal chamber and allowed to stabilize at a series of discrete temperature setpoints. Data collection is initiated only after the sensor has reached thermal equilibrium at each target temperature. By recording measurements and calculating sensor errors at these stable points, a dataset of error-versus-temperature values is generated. Errors at intermediate temperatures can then be estimated using interpolation techniques [4]. 
+    </p>
+  </li>
+  <li>
+<p align="justify">
+  <strong>Thermal Ramp Method:</strong> In this approach, the sensor is polled continuously while the thermal chamber temperature is linearly increased or decreased across the desired operating range. While this method is inherently faster because it eliminates the time-consuming stabilization periods, it introduces two significant sources of error. First, a thermal gradient often exists between the inertial sensor core and the temperature sensor, leading to measurement discrepancies similar to hysteresis. Second, because the temperature evolves dynamically during the data acquisition window for a single calibration scheme, the resulting error parameters are derived from data collected at varying temperatures rather than a single thermal point [4].
+</p>
+
+  </li>
+</ul>
+
+<p align="justify">
+Although time-intensive, the soak method ensures the most reliable error characterization [4]; therefore, it has been selected for this verification.
+</p>
 
 <h2>Hardware Design</h2>
 
@@ -100,11 +205,16 @@ where <img src="https://latex.codecogs.com/svg.latex?\bar{\omega}_{i^+}" /> is t
 
 <p align="justify"> <strong>WARNING:</strong> Failure to respect the following order of operations may damage the board. </p> <ol> <li>Connect a jumper between <strong>Pin 1 and Pin 2</strong> of header <strong>JP5</strong> on the NUCLEO-F446RE board (this differs from E5V mode).</li> <li>Ensure that jumper <strong>JP1</strong> on the NUCLEO-F446RE board is <strong>removed</strong>.</li> <li>Mount the custom PCB onto the NUCLEO-F446RE board.</li> <li>Connect the PC or Power Bank to the USB connector <strong>CN1</strong> on the NUCLEO-F446RE.</li> </ol>
 
-<p align="justify"> <strong>Note:</strong> During the actual tests, using a battery (E5V) or power bank (U5V) is mandatory. A USB connection to a PC is not feasible due to cable tangling. </p>
+<p align="justify"> <strong>Note:</strong> During the actual tests, using a battery (E5V) or power bank (U5V) is mandatory. A USB connection to a PC is not feasible due to the cable. </p>
 
 <h2>Calibration Procedure</h2>
 
-<p align="justify"> The custom PCB includes a push-button that controls the data logging process. Pressing the button initiates an uninterrupted gyroscope data logging cycle for a specific duration. Once the cycle finishes, another can be initiated.</p> <ul> <li><strong>Thermal Chamber Test:</strong> Each cycle corresponds to a specific temperature stability point. The button logic is mandatory here, as the time required for the chamber to stabilize varies and cannot be automated with a simple timer.</li> <li><strong>Rotary Table Test:</strong> Each cycle corresponds to a specific rotation.</li> </ul>
+<p align="justify"> The custom PCB includes a push-button that controls the data logging process. Pressing the button initiates an uninterrupted gyroscope data logging cycle for a specific duration <em>T</em>. Once the cycle finishes, another can be initiated.</p> <ul> 
+
+<li><p align="justify"><strong>Gyroscope Biases - Static Test:</strong>
+Each cycle corresponds to a specific position.</p>
+<li><p align="justify"><strong>Gyroscope Scale Factor Errors - Dynamic Rotary Test:</strong> Each cycle corresponds to a specific rotation.</p>
+<li><p align="justify"><strong>Gyroscope Biases - Static Thermal Test:</strong> Each cycle corresponds to a specific temperature stability point. The button logic is mandatory here, as the time required for the chamber to stabilize varies and cannot be automated with a simple timer. </p>
 
 <p align="justify"> The code supporting this button functionality is found in the <code>button_logic</code> branch. </p>
 
@@ -128,30 +238,248 @@ where <img src="https://latex.codecogs.com/svg.latex?\bar{\omega}_{i^+}" /> is t
 
 <p align="justify"> After checking out the desired branch, return to STM32CubeIDE and click <strong>Run</strong> to program the board. </p>
 
-<h3>Rotary Table Test Procedure</h3>
+<p align="justify"> <strong>IMPORTANT:</strong> Before starting a new test, you must erase the previous data from the flash memory. Connect the system to the PC, open a Serial Terminal (like PuTTY or the Arduino Serial Monitor) on the correct COM port, and send the character <strong>'e'</strong>. This clears the memory. Failure to do this will result in corrupted data when reading the new test. </p>
 
-<p align="justify"> The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The calculation of calibration parameters is performed by a Python script on the PC. </p> 
+<h3>Gyroscope Biases - Static Test Procedure</h3>
 
-<p align="justify"> <strong>Prerequisite:</strong> Download the script located at <code>MO-2_GyroscopeVerification/PythonScripts/rotary_gyro_data_retrieve.py</code>. This script is compatible with Windows. </p>
-
-<p align="justify"> <strong>Orientation Definitions:</strong> </p> <ul> <li><strong>+Z (Up):</strong> The PCB LED is pointing toward the floor/table.</li> <li><strong>-Z (Down):</strong> The PCB LED is pointing toward the ceiling.</li> </ul>
-
-<p align="justify"> <strong>Execution Steps (Button Logic):</strong> </p>
-
-<ol> <li>In STM32CubeIDE, open <code>Core/Src/main.c</code> and define the log duration in milliseconds by modifying <code>#define LOG_DURATION_MS</code>. This sets how long the system records data per button press.</li> <li>In the Python script (<code>rotary_gyro_data_retrieve.py</code>), update the variable <code>TABLE_GROUND_TRUTH_DPS</code> to match the angular velocity (deg/s) you will set on the rotary table.</li> <li>Power the system using the Battery Pack (E5V) or Power Bank (U5V). If using E5V, turn on the switch. The PCB LED will start toggling (blinking), indicating it is in Idle mode.</li> <li>Place the system on the rotary table in the <strong>+Z orientation</strong>. Ensure no USB cables are connected to the PC.</li> <li>Configure the rotary table to spin Counter-Clockwise (CCW) at the velocity defined in step 2 and start the rotation.</li> <li>Press the button on the PCB to start logging. The LED will stop blinking and remain <strong>solid ON</strong>. When the cycle finishes, the LED will return to blinking. Stop the rotary table.</li> <li>Flip the system and place it on the rotary table in the <strong>-Z orientation</strong>.</li> <li>Start the rotary table spinning Counter-Clockwise (CCW) at the same velocity.</li> <li>Press the button to start the second log. The LED will turn solid ON. Wait for it to return to blinking, then stop the table.</li> <li><strong>Data Retrieval:</strong> <ul> <li>If using <strong>E5V</strong>: Do <strong>not</strong> turn off the switch or remove batteries. Connect the USB cable from the NUCLEO-F446RE to the PC.</li> <li>If using <strong>U5V</strong>: Disconnect the USB cable from the power bank and connect it to the PC.</li> </ul> </li> <li>Open Device Manager on Windows and identify the COM port assigned to <strong>STMicroelectronics STLink Virtual COM Port</strong>.</li> <li>Update the <code>COM_PORT</code> variable in the Python script with this value (e.g., 'COM3') and run the script.</li> <li>The script will generate a text file containing the logs and a plot displaying the Raw Sensor Data (deg/s), Calibrated Sensor Data (deg/s), the measured averages <img src="https://latex.codecogs.com/svg.latex?\bar{\omega}{z^+}" /> and <img src="https://latex.codecogs.com/svg.latex?\bar{\omega}{z^-}" />, and the calculated calibration parameters <img src="https://latex.codecogs.com/svg.latex?b_z" /> and <img src="https://latex.codecogs.com/svg.latex?s_z"/>.</li></ol></p>
-
-<p align="center">
-<img src="https://github.com/user-attachments/assets/e83f2797-a672-4e6e-af5c-ffd23b0de8ae" alt="Example Calibration Plot 5 dps" width="80%" />
+<p align="justify">
+The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The calculation of the biases is performed by a Python script on the PC.
 </p>
 
-<p align="center">
-<img src="https://github.com/user-attachments/assets/27a8258c-fb3d-402c-8485-eae5781bb0fd" alt="Example Calibration Plot 25 dps" width="80%" />
+<p align="justify">
+<strong>Prerequisite:</strong> Download the script located at <code>MO-2_GyroscopeVerification/PythonScripts/gyro_biases_static_test.py</code>. This script is compatible with Windows.
 </p>
 
+<p align="justify"><strong>Execution Steps:</strong></p>
+
+<ol>
+  <li>
+    <p align="justify">
+      <strong>Configure Firmware:</strong> In STM32CubeIDE, open <code>Core/Src/main.c</code> and modify <code>#define LOG_DURATION_MS</code> to set the log duration <em>T</em> (in milliseconds) for each button press.
+    </p>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Power Up:</strong> Connect the Battery Pack (E5V) or Power Bank (U5V). If using E5V, turn on the switch. Verify the PCB LED is toggling (blinking), indicating Idle mode. Ensure no USB cables are connected.
+    </p>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Perform Data Logging:</strong> Perform the logging routine for each of the required positions. <strong>CRITICAL: You must perform the tests in the exact order shown (Position 1 &rarr; Position 2 &rarr; Position 3).</strong> For every position listed below:
+    </p>
+    <ul>
+      <li>Place the system on a leveled surface matching the reference image.</li>
+      <li>Press the button to start logging. The PCB LED will turn <strong>Solid ON</strong>.</li>
+      <li>Wait for the PCB LED to return to <strong>Blinking</strong> (cycle complete) before moving to the next position.</li>
+    </ul>
+
+  <p align="center">
+    <strong>Position 1</strong><br>
+    <img src="path_to_image_1.jpg" alt="Position 1 Alignment" width="300"><br><br>
+  </p>
+
+  <p align="center">
+  <strong>Position 2</strong><br>
+    <img src="path_to_image_2.jpg" alt="Position 2 Alignment" width="300"><br><br>
+  </p> 
+
+  <p align="center">
+  <strong>Position 3</strong><br>
+    <img src="path_to_image_3.jpg" alt="Position 3 Alignment" width="300">
+  </p>
+
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Connect to PC:</strong>
+    </p>
+    <ul>
+      <li>If using <strong>E5V</strong>: Keep the batteries connected and switch ON. Connect the USB cable to the PC.</li>
+      <li>If using <strong>U5V</strong>: Disconnect the power bank and connect the USB cable to the PC.</li>
+    </ul>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Identify Port:</strong> Open Windows Device Manager and find the COM port number for <strong>STMicroelectronics STLink Virtual COM Port</strong>.
+    </p>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Run Analysis:</strong> Update the <code>COM_PORT</code> variable in the Python script and run it.
+    </p>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Results:</strong> The script generates a text file containing the logs and a summary of the results, as well as a plot displaying the averaged angular rates (<img src="https://math.vercel.app?from=\bar{\omega}_{i^{up}}" /> and <img src="https://math.vercel.app?from=\bar{\omega}_{i^{down}}" />) per axis, along with the calculated biases.
+    </p>
+  </li>
+</ol>
+
+<h3>Gyroscope Scale Factor Errors - Dynamic Rotary Test:</h3>
+
+<p align="justify">
+The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The calculation of the scale factor errors is performed by a Python script on the PC.
+</p>
+
+<p align="justify">
+<strong>Prerequisite:</strong> Download the script located at <code>MO-2_GyroscopeVerification/PythonScripts/gyro_scale_factor_errors_dynamic_rotary_test.py</code>. This script is compatible with Windows.
+</p>
+
+<p align="justify"><strong>Execution Steps:</strong></p>
+
+<ol>
+  <li>
+    <p align="justify">
+      <strong>Configure Firmware:</strong> In STM32CubeIDE, open <code>Core/Src/main.c</code> and modify <code>#define LOG_DURATION_MS</code> to set the log duration <em>T</em> (in milliseconds) for each button press.
+    </p>
+  </li>
+
+  <li><strong>Configure Script:</strong> In the Python script, update the variable <code>TABLE_GROUND_TRUTH_DPS</code> to match the angular velocity you will set on the rotary table.</li>
+
+  <li>
+    <p align="justify">
+      <strong>Power Up:</strong> Connect the Battery Pack (E5V) or Power Bank (U5V). If using E5V, turn on the switch. Verify the PCB LED is toggling (blinking), indicating Idle mode. Ensure no USB cables are connected.
+    </p>
+  </li>
+
+<li>
+  <p align="justify">
+    <strong>Perform Data Logging:</strong> Execute the logging sequence for the three positions shown below. 
+    <strong>CRITICAL: You must perform the tests in the exact order shown (Position 1 (CW &rarr; CCW) &rarr; Position 2 (CW &rarr; CCW) &rarr; Position 3 (CW &rarr; CCW)).</strong> 
+  </p>
+
+  <p align="center">
+    <strong>Position 1</strong><br>
+    <img src="path_to_image_1.jpg" alt="Position 1 Alignment" width="300"><br><br>
+  </p>
+
+  <p align="center">
+  <strong>Position 2</strong><br>
+    <img src="path_to_image_2.jpg" alt="Position 2 Alignment" width="300"><br><br>
+  </p> 
+   
+  <p align="center">
+  <strong>Position 3</strong><br>
+    <img src="path_to_image_3.jpg" alt="Position 3 Alignment" width="300">
+  </p>
+
+  <p align="justify">For <strong>each</strong> position, repeat the following steps:</p>
+  <ul>
+    <li>Place the system on the rotary table as shown in the corresponding image.</li>
+    <li><strong>Clockwise (CW):</strong> Configure the table to spin CW at the defined velocity and start rotation. Press the button to log (LED solid ON). When the LED returns to blinking, stop the table.</li>
+    <li><strong>Counter-Clockwise (CCW):</strong> Configure the table to spin CCW at the defined velocity and start rotation. Press the button to log (LED solid ON). When the LED returns to blinking, stop the table.</li>
+  </ul>
 </li>
 
-<p align="justify"> <strong>IMPORTANT:</strong> Before starting a new test (a new pair of +Z/-Z rotations), you must erase the previous data from the flash memory. Connect the system to the PC, open a Serial Terminal (like PuTTY or the Arduino Serial Monitor) on the correct COM port, and send the character <strong>'e'</strong>. This clears the memory. Failure to do this will result in corrupted data when reading the new test. </p>
- 
+  <li>
+    <p align="justify">
+      <strong>Connect to PC:</strong>
+    </p>
+    <ul>
+      <li>If using <strong>E5V</strong>: Keep the batteries connected and switch ON. Connect the USB cable to the PC.</li>
+      <li>If using <strong>U5V</strong>: Disconnect the power bank and connect the USB cable to the PC.</li>
+    </ul>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Identify Port:</strong> Open Windows Device Manager and find the COM port number for <strong>STMicroelectronics STLink Virtual COM Port</strong>.
+    </p>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Run Analysis:</strong> Update the <code>COM_PORT</code> variable in the Python script and run it.
+    </p>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Results:</strong> The script generates a text file containing the logs and a summary of the results, as well as a plot displaying the averaged angular rates (<img src="https://math.vercel.app?from=\bar{\omega}_{i^{cw}}" /> and <img src="https://math.vercel.app?from=\bar{\omega}_{i^{ccw}}" />) per axis, along with the calculated scale factor errors.
+    </p>
+  </li>
+</ol>
+
+<h3>Gyroscope Biases - Static Thermal Test:</h3>
+
+<p align="justify">
+The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The plotting of the angular velocity  versus temperature is performed by a Python script on the PC.
+</p>
+
+<p align="justify">
+<strong>Prerequisite:</strong> Download the script located at <code>MO-2_GyroscopeVerification/PythonScripts/gyro_biases_static_thermal_test.py</code>. This script is compatible with Windows.
+</p>
+
+<p align="justify"><strong>Execution Steps:</strong></p>
+
+<ol>
+  <li>
+    <p align="justify">
+      <strong>Configure Firmware:</strong> In STM32CubeIDE, open <code>Core/Src/main.c</code> and modify <code>#define LOG_DURATION_MS</code> to set the log duration <em>T</em> (in milliseconds) for each button press.
+    </p>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Power Up:</strong> Connect the Battery Pack (E5V) or Power Bank (U5V). If using E5V, turn on the switch. Verify the PCB LED is toggling (blinking), indicating Idle mode. Ensure no USB cables are connected.
+    </p>
+  </li>
+
+<li>
+  <p align="justify">
+    <strong>Perform Data Logging:</strong> Place the system inside the thermal chamber as shown in Position 1.
+  </p>  
+
+  <p align="center">
+    <strong>Position 1</strong><br>
+    <img src="path_to_image_1.jpg" alt="Position 1 Alignment" width="300"><br><br>
+  </p> 
+    
+  <p>For each temperature point defined in your test plan, execute the following sequence:
+  </p>
+  <ul>
+    <li><strong>Set Temperature:</strong> Configure the thermal chamber to the target temperature and allow sufficient time for it to stabilize (soak time).</li>
+    <li><strong>Start Logging:</strong> Press the button on the PCB to start logging. The LED will stop blinking and remain <strong>solid ON</strong>.</li>
+    <li><strong>Wait for Completion:</strong> When the logging cycle finishes, the LED will return to blinking.</li>
+    <li><strong>Repeat:</strong> Change the chamber temperature to the next point and repeat the steps above.</li>
+  </ul>
+</li>
+
+  <li>
+    <p align="justify">
+      <strong>Connect to PC:</strong>
+    </p>
+    <ul>
+      <li>If using <strong>E5V</strong>: Keep the batteries connected and switch ON. Connect the USB cable to the PC.</li>
+      <li>If using <strong>U5V</strong>: Disconnect the power bank and connect the USB cable to the PC.</li>
+    </ul>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Identify Port:</strong> Open Windows Device Manager and find the COM port number for <strong>STMicroelectronics STLink Virtual COM Port</strong>.
+    </p>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Run Analysis:</strong> Update the <code>COM_PORT</code> variable in the Python script and run it.
+    </p>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Results:</strong> The script generates a text file containing the logs and a summary of the results, as well as a plot displaying the averaged angular rates for each axis at each temperature point.
+    </p>
+  </li>
+</ol>
+
 <h2>References</h2>
 
 <ol>
@@ -164,5 +492,16 @@ where <img src="https://latex.codecogs.com/svg.latex?\bar{\omega}_{i^+}" /> is t
     <p align="justify">
       Z. Yampolsky and I. Klein, "Data-Driven Gyroscope Calibration," <em>arXiv preprint arXiv:2410.12485</em>, 2024. [Online]. Available: <a href="https://arxiv.org/pdf/2410.12485">https://arxiv.org/pdf/2410.12485</a>
     </p>
+  </li>
+  <li>
+    <p align="justify">
+      D. Royo Serrano, "Development of a calibration procedure for gyroscopes in CubeSat missions," Master's thesis, Luleå University of Technology, Luleå, Sweden, 2021. [Online]. Available: <a href="https://www.diva-portal.org/smash/get/diva2:1537570/FULLTEXT01.pdf">https://www.diva-portal.org/smash/get/diva2:1537570/FULLTEXT01.pdf</a>
+    </p>
+  <li>
+    <p align="justify">
+      X. Niu, Y. Li, H. Zhang, Q. Wang, and Y. Ban, "Fast Thermal Calibration of Low-Grade Inertial Sensors and Inertial Measurement Units," <em>Sensors</em>, vol. 13, no. 9, pp. 12192-12217, 2013. [Online]. Available: <a href="https://doi.org/10.3390/s130912192">https://doi.org/10.3390/s130912192</a>
+    </p>
+  </li>
+</ol>
   </li>
 </ol>
