@@ -1,3 +1,5 @@
+gyro_rotary_data_*.txt
+gyro_thermal_data_*.txt
 *.bin
 *.elf
 *.list
