@@ -267,6 +267,8 @@ The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The calculation o
 <li><p align="justify"><strong>Results:</strong> The script generates a text file containing the logs and a summary of the results, as well as a plot displaying the averaged angular rates (<img src="https://math.vercel.app?from=\bar{\omega}_{i^{up}}" /> and <img src="https://math.vercel.app?from=\bar{\omega}_{i^{down}}" />) per axis, along with the calculated biases.</p></li>
 </ol>
 
+<img width="2559" height="1415" alt="Results" src="https://github.com/user-attachments/assets/ae4e64fc-f1f5-419a-8647-0b2123fcd3b8" />
+
 <h3>Gyroscope Scale Factor Errors - Dynamic Rotary Test:</h3>
 
 <p align="justify">
@@ -313,6 +315,57 @@ The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The calculation o
 <li><p align="justify"><strong>Run Analysis:</strong> Update the <code>COM_PORT</code> variable in the Python script and run it.</p></li>
 <li><p align="justify"><strong>Results:</strong> The script generates a text file containing the logs and a summary of the results, as well as a plot displaying the averaged angular rates (<img src="https://math.vercel.app?from=\bar{\omega}_{i^{cw}}" /> and <img src="https://math.vercel.app?from=\bar{\omega}_{i^{ccw}}" />) per axis, along with the calculated scale factor errors.</p></li>
 </ol>
+
+<h3>Gyroscope Calibration</h3>
+
+<p align="justify">
+This procedure applies the calculated biases and scale factor errors to a selected raw data log. The Python script utilizes the inverse error model to recover the calibrated angular velocity (<img src="https://latex.codecogs.com/svg.latex?\mathbf{\omega}" />) and compares it against the raw measured data (<img src="https://latex.codecogs.com/svg.latex?\mathbf{\hat{\omega}}" />) for visual inspection.
+</p>
+
+<p align="justify">
+<strong>Prerequisite:</strong> Download the script located at <code>MO-2_GyroscopeVerification/PythonScripts/gyro_calibration.py</code>.
+</p>
+
+<p align="justify"><strong>Execution Steps:</strong></p>
+
+<ol type="1">
+  <li>
+    <p align="justify">
+      <strong>Select Log File:</strong> Locate the text file containing the raw gyroscope data you wish to calibrate. Ensure this file is accessible to the script.
+    </p>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Configure Script:</strong> Open the Python script in a text editor or IDE. You must manually update the <strong>USER CONFIGURATION</strong> section at the top of the file with the specific parameters obtained from previous tests:
+    </p>
+    <ul>
+      <li><p align="justify">Update the <code>LOG_FILE_NAME</code> variable with the exact name of your target log file.</p></li>
+      <li><p align="justify">Enter the calculated Bias values (<code>b_x, b_y, b_z</code>) in units of dps.</p></li>
+      <li><p align="justify">Enter the calculated Scale Factor Error values (<code>s_x, s_y, s_z</code>).</p></li>
+    </ul>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Run Analysis:</strong> Run the Python script. This script processes the file locally and does not require the hardware system to be connected.
+    </p>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Results:</strong> The script will automatically detect the number of data cycles in the log file and generate a <strong>separate window</strong> for each cycle. Each window contains three subplots (X, Y, Z) displaying:
+    </p>
+    <ul>
+       <li><p align="justify"><strong>Uncalibrated (Dark Blue):</strong> The raw angular velocity as originally measured by the sensor.</p></li>
+       <li><p align="justify"><strong>Calibrated (Light Blue):</strong> The corrected angular velocity recovered using the manual input parameters.</p></li>
+    </ul>
+  </li>
+</ol>
+
+<p align="justify">
+This visual comparison allows for the immediate verification of the calibration performance across different test positions or rotations.
+</p>
 
 <h3>Gyroscope Biases - Static Thermal Test:</h3>
 
