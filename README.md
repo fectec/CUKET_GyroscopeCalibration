@@ -404,8 +404,7 @@ The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The plotting of t
 </li>
 <li><p align="justify"><strong>Identify Port:</strong> Open Windows Device Manager and find the COM port number for <strong>STMicroelectronics STLink Virtual COM Port</strong>.</p></li>
 <li><p align="justify"><strong>Run Analysis:</strong> Update the <code>COM_PORT</code> variable in the Python script and run it.</p></li>
-<li><p align="justify"><strong>Results:</strong> The script generates a text file containing the logs and a summary of the results, as well as a plot displaying the averaged angular rates for each axis at each temperature point.</p></li>
-</ol>
+<li><p align="justify"><strong>Results:</strong> After extracting the data, the script will prompt the user in the console to manually input the temperature (°C) corresponding to each recorded cycle. Once completed, it generates a text file containing the logs and a summary of the results, as well as a plot displaying the averaged angular rates for each axis at each temperature point.</p></li></ol>
 
 <h2>References</h2>
 
