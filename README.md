@@ -109,7 +109,8 @@ represent the scale factors, while the off-diagonal elements <img src="https://l
 <p align="justify">Since misalignment angles are small in low-cost gyroscopes, only scale factors and bias errors are typically considered. The reduced model is therefore [2]:</p>
 
 <p align="center">
-  <img src="https://latex.codecogs.com/svg.latex?\begin{bmatrix}\hat{\omega}_x\\\hat{\omega}_y\\\hat{\omega}_z\end{bmatrix}=\begin{bmatrix}1 + s_{x}&0&0\\0&1 + s_{y}&0\\0&0&1 + s_{z}\end{bmatrix}\begin{bmatrix}\omega_x\\\omega_y\\\omega_z\end{bmatrix}+\begin{bmatrix}b_x\\b_y\\b_z\end{bmatrix}\quad(4)" alt="Reduced Model (4)" />
+  <img src="https://latex.codecogs.com/svg.latex?%5Cbegin%7Bbmatrix%7D%5Chat%7B%5Comega%7D_x%5C%5C%5Chat%7B%5Comega%7D_y%5C%5C%5Chat%7B%5Comega%7D_z%5Cend%7Bbmatrix%7D%3D%5Cbegin%7Bbmatrix%7D1%2Bs_x%260%260%5C%5C0%261%2Bs_y%260%5C%5C0%260%261%2Bs_z%5Cend%7Bbmatrix%7D%5Cbegin%7Bbmatrix%7D%5Comega_x%5C%5C%5Comega_y%5C%5C%5Comega_z%5Cend%7Bbmatrix%7D%2B%5Cbegin%7Bbmatrix%7Db_x%5C%5Cb_y%5C%5Cb_z%5Cend%7Bbmatrix%7D\quad(4)"
+       alt="Reduced Model (4)" />
 </p>
 
 <p align="justify"> In order to solve Equation (4), a combination of static and dynamic tests using a rotary table will be performed [3]. This procedure is explained below.<p>
@@ -157,11 +158,13 @@ For both bias and scale factor error, the bar notation (<img src="https://latex.
 <p align="center"> <img src="https://latex.codecogs.com/svg.latex?\mathbf{\omega}=\mathbf{K}^{-1}(\mathbf{\hat{\omega}}-\mathbf{b})\quad(7)" alt="Inverse Error Model (7)" /> </p>
 
 <p align="center">
-  <img src="https://latex.codecogs.com/svg.latex?\begin{bmatrix}\omega_x\\\omega_y\\\omega_z\end{bmatrix}=\begin{bmatrix}1 + s_{x}&0&0\\0&1 + s_{y}&0\\0&0&1 + s_{z}\end{bmatrix}^{-1}\left(\begin{bmatrix}\hat{\omega}_x\\\hat{\omega}_y\\\hat{\omega}_z\end{bmatrix}-\begin{bmatrix}b_x\\b_y\\b_z\end{bmatrix}\right)\quad(8)" alt="Inverse Error Matrix Model (8)" />
+  <img src="https://latex.codecogs.com/svg.latex?%5Cbegin%7Bbmatrix%7D%5Comega_x%5C%5C%5Comega_y%5C%5C%5Comega_z%5Cend%7Bbmatrix%7D%3D%5Cbegin%7Bbmatrix%7D1%2Bs_x%260%260%5C%5C0%261%2Bs_y%260%5C%5C0%260%261%2Bs_z%5Cend%7Bbmatrix%7D%5E%7B-1%7D%5Cleft%28%5Cbegin%7Bbmatrix%7D%5Chat%7B%5Comega%7D_x%5C%5C%5Chat%7B%5Comega%7D_y%5C%5C%5Chat%7B%5Comega%7D_z%5Cend%7Bbmatrix%7D-%5Cbegin%7Bbmatrix%7Db_x%5C%5Cb_y%5C%5Cb_z%5Cend%7Bbmatrix%7D%5Cright%29%5Cquad%288%29"
+       alt="Inverse Error Matrix Model (8)" />
 </p>
 
 <p align="center">
-  <img src="https://latex.codecogs.com/svg.latex?\omega_{x}=\frac{\hat{\omega}_{x}-b_{x}}{1 + s_{x}},\quad\omega_{y}=\frac{\hat{\omega}_{y}-b_{y}}{1 + s_{y}},\quad\omega_{z}=\frac{\hat{\omega}_{z}-b_{z}}{1 + s_{z}}\quad(9)" alt="Scalar Calibration Formulas (9)" />
+  <img src="https://latex.codecogs.com/svg.latex?%5Comega_x%3D%5Cfrac%7B%5Chat%7B%5Comega%7D_x-b_x%7D%7B1%2Bs_x%7D%2C%5Cquad%5Comega_y%3D%5Cfrac%7B%5Chat%7B%5Comega%7D_y-b_y%7D%7B1%2Bs_y%7D%2C%5Cquad%5Comega_z%3D%5Cfrac%7B%5Chat%7B%5Comega%7D_z-b_z%7D%7B1%2Bs_z%7D%5Cquad%289%29"
+       alt="Scalar Calibration Formulas (9)" />
 </p>
 
 <h2>Thermal Calibration</h2>
@@ -224,7 +227,8 @@ Each cycle corresponds to a specific position.</p>
 
 <p align="justify"> If the NUCLEO-F446RE board has not been programmed, follow these instructions: </p>
 
-<ol> <li> <p align="justify"> <strong>Clone the Repository:</strong> Open your terminal, navigate to your STM32CubeIDE workspace directory, and execute: </p> <pre><code>git clone https://github.com/fectec/MO-2_GyroscopeVerification.git</code></pre> </li>
+<ol type="1">
+<li> <p align="justify"> <strong>Clone the Repository:</strong> Open your terminal, navigate to your STM32CubeIDE workspace directory, and execute: </p> <pre><code>git clone https://github.com/fectec/MO-2_GyroscopeVerification.git</code></pre> </li>
 
 <li> <p align="justify"> <strong>Import Project:</strong> In STM32CubeIDE, go to <strong>File > Open Projects from File System</strong>. Browse to the <code>MO-2_GyroscopeVerification</code> folder. Ensure <em>"Search for nested projects"</em> and <em>"Detect and configure project natures"</em> are checked, then click <strong>Finish</strong>. </p> </li>
 
@@ -252,7 +256,7 @@ The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The calculation o
 
 <p align="justify"><strong>Execution Steps:</strong></p>
 
-<ol>
+<ol type="1">
   <li>
     <p align="justify">
       <strong>Configure Firmware:</strong> In STM32CubeIDE, open <code>Core/Src/main.c</code> and modify <code>#define LOG_DURATION_MS</code> to set the log duration <em>T</em> (in milliseconds) for each button press.
@@ -277,17 +281,17 @@ The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The calculation o
 
   <p align="center">
     <strong>Position 1</strong><br>
-    <img src="path_to_image_1.jpg" alt="Position 1 Alignment" width="300"><br><br>
+    <img src="https://github.com/user-attachments/assets/ce7d5c47-3d76-469f-8495-888691b38281" alt="Position 1 Alignment"><br><br>
   </p>
 
   <p align="center">
   <strong>Position 2</strong><br>
-    <img src="path_to_image_2.jpg" alt="Position 2 Alignment" width="300"><br><br>
+    <img src="https://github.com/user-attachments/assets/689e6140-b162-4c93-ad7c-e60c2f0bd7d3" alt="Position 2 Alignment"><br><br>
   </p> 
 
   <p align="center">
   <strong>Position 3</strong><br>
-    <img src="path_to_image_3.jpg" alt="Position 3 Alignment" width="300">
+    <img src="https://github.com/user-attachments/assets/dc66da5c-dbad-4d4e-9aac-d4749e14ad1c" alt="Position 3 Alignment">
   </p>
 
   </li>
@@ -333,7 +337,7 @@ The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The calculation o
 
 <p align="justify"><strong>Execution Steps:</strong></p>
 
-<ol>
+<ol type="1">
   <li>
     <p align="justify">
       <strong>Configure Firmware:</strong> In STM32CubeIDE, open <code>Core/Src/main.c</code> and modify <code>#define LOG_DURATION_MS</code> to set the log duration <em>T</em> (in milliseconds) for each button press.
@@ -356,17 +360,17 @@ The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The calculation o
 
   <p align="center">
     <strong>Position 1</strong><br>
-    <img src="path_to_image_1.jpg" alt="Position 1 Alignment" width="300"><br><br>
+    <img src="https://github.com/user-attachments/assets/3f993f3c-cc5a-4cf2-a2cc-20ae1826a5ea" alt="Position 1 Alignment"><br><br>
   </p>
 
   <p align="center">
   <strong>Position 2</strong><br>
-    <img src="path_to_image_2.jpg" alt="Position 2 Alignment" width="300"><br><br>
+    <img src="https://github.com/user-attachments/assets/80379b77-40c4-4bce-9b40-664e33ace2be" alt="Position 2 Alignment"><br><br>
   </p> 
-   
+
   <p align="center">
   <strong>Position 3</strong><br>
-    <img src="path_to_image_3.jpg" alt="Position 3 Alignment" width="300">
+    <img src="https://github.com/user-attachments/assets/a56a6f36-c45e-4cf2-ae19-bbd03feb259b" alt="Position 3 Alignment">
   </p>
 
   <p align="justify">For <strong>each</strong> position, repeat the following steps:</p>
@@ -418,7 +422,7 @@ The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The plotting of t
 
 <p align="justify"><strong>Execution Steps:</strong></p>
 
-<ol>
+<ol type="1">
   <li>
     <p align="justify">
       <strong>Configure Firmware:</strong> In STM32CubeIDE, open <code>Core/Src/main.c</code> and modify <code>#define LOG_DURATION_MS</code> to set the log duration <em>T</em> (in milliseconds) for each button press.
@@ -438,7 +442,7 @@ The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The plotting of t
 
   <p align="center">
     <strong>Position 1</strong><br>
-    <img src="path_to_image_1.jpg" alt="Position 1 Alignment" width="300"><br><br>
+    <img src="https://github.com/user-attachments/assets/66444492-c323-4fbd-a233-f10cddc64c22" alt="Position 1 Alignment"><br><br>
   </p> 
     
   <p>For each temperature point defined in your test plan, execute the following sequence:
