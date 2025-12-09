@@ -122,7 +122,7 @@ Where <img src="https://latex.codecogs.com/svg.latex?b_i" /> is the bias for eac
 <h3> Gyroscope Scale Factor Errors - Dynamic Test</h3>
 
 <p align="justify">
-The scale factor errors are determined using a procedure similar to the bias calculation, but this time a rotary table is employed to spin the gyroscope triad both clockwise and counter-clockwise for each sensitive axis (six different measurements). The scale factor error for a given axis <em>i</em> is calculated as [3]:
+The scale factor errors are determined using a procedure similar to the bias calculation, but this time a rotary table is employed to spin the gyroscope triad both clockwise and counter-clockwise for each sensitive axis (six different measurements) [3]. The scale factor error for a given axis <em>i</em> is calculated as [2]:
 </p>
 
 <p align="center">
