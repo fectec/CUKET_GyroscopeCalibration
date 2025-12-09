@@ -158,7 +158,7 @@ For both bias and scale factor error, the bar notation (<img src="https://latex.
 <h2>Thermal Calibration</h2>
 
 <p align="justify">
-Thermal calibration is performed to model the temperature dependencies of the gyroscope's deterministic errors: bias and scale factor. Two primary methods are employed for this characterization [3]:
+Thermal calibration is performed to model the temperature dependencies of the gyroscope's deterministic errors: bias and scale factor. Two primary methods are employed for this characterization [4]:
 
 </p>
 
