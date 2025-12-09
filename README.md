@@ -1,7 +1,7 @@
 <h1>Implementation of the MO-2 Gyroscope Verification System</h1>
 
 <p align="justify">
-Over a period of four months, hands-on research activities and laboratory projects were conducted at the Kyushu Institute of Technology (Kyutech) in Japan, along with a group of students from Instituto Tecnológico y de Estudios Superiores de Monterrey (ITESM) in México. 
+Over a period of four months, hands-on research activities and laboratory projects were conducted at the Kyushu Institute of Technology (Kyutech) in Japan, along with a group of students from Instituto Tecnológico y de Estudios Superiores de Monterrey (ITESM) in México. 
 Kyutech, recognized as one of the most distinguished traditional national universities of Japan and notable for its aerospace research, established the Laboratory of Lean Satellite Enterprises and In-Orbit Experiments (LaSEINE) to promote the utilization of nanosatellites, especially the CubeSat, based on the new concept of Lean Satellite [1].</p>
 
 <p align="justify">
@@ -19,7 +19,7 @@ For the MO-2 mission, one primary objective is to observe the satellite's condit
 </p>
 
 <p align="justify">
-MEMS gyroscopes are widely adopted in CubeSat missions due to their compact size, low power consumption, cost-effectiveness, and precision. However, their accuracy tends to degrade over time as a result of  combined errors, including noise, biases, drift, and scale factor instability. If left uncorrected, these deterministic errors accumulate, leading to progressively larger discrepancies in position and orientation estimates, a phenomenon well-documented in previous missions utilizing MEMS sensors for Attitude Determination and Control Systems (ADCS) [3].
+MEMS gyroscopes are widely adopted in CubeSat missions due to their compact size, low power consumption, cost-effectiveness, and precision. However, their accuracy tends to degrade over time as a result of  combined errors, including noise, biases, drift, and scale factor instability. If left uncorrected, these deterministic errors accumulate, leading to progressively larger discrepancies in position and orientation estimates, a phenomenon well-documented in previous missions utilizing MEMS sensors for Attitude Determination and Control Systems (ADCS) [3].
 </p>
 
 <p align="justify">
@@ -61,21 +61,9 @@ An ideal MEMS gyroscope is characterized by the absence of noise or offset and p
 </p>
 
 <ul>
-  <li>
-    <p align="justify">
-      <strong>Bias (Offset):</strong> The deviation of the gyroscope output from the expected theoretical value when the device is stationary. This "zero reading" tends to drift over time due to the integration of inherent device imperfections and internal noise [3].
-    </p>
-  </li>
-  <li>
-    <p align="justify">
-      <strong>Scale Factor Error:</strong> A metric describing the deviation of the sensor's sensitivity from unity. It quantifies the discrepancy between the sensor's measured output range and the actual input rotation range [3].
-    </p>
-  </li>
-  <li>
-    <p align="justify">
-      <strong>Non-orthogonalities (Misalignment):</strong> The error resulting from imperfect alignment of the gyroscope's sensing axes relative to an ideal mutually orthogonal coordinate system [3].
-    </p>
-  </li>
+<li><p align="justify"><strong>Bias (Offset):</strong> The deviation of the gyroscope output from the expected theoretical value when the device is stationary. This "zero reading" tends to drift over time due to the integration of inherent device imperfections and internal noise [3].</p></li>
+<li><p align="justify"><strong>Scale Factor Error:</strong> A metric describing the deviation of the sensor's sensitivity from unity. It quantifies the discrepancy between the sensor's measured output range and the actual input rotation range [3].</p></li>
+<li><p align="justify"><strong>Non-orthogonalities (Misalignment):</strong> The error resulting from imperfect alignment of the gyroscope's sensing axes relative to an ideal mutually orthogonal coordinate system [3].</p></li>
 </ul>
 
 <p align="justify">
@@ -83,7 +71,7 @@ The output of a typical MEMS gyroscope can be modeled as a function of the true 
 </p>
 
 <p align="center">
-  <img src="https://latex.codecogs.com/svg.latex?\mathbf{\hat{\omega}}=\mathbf{K}\mathbf{\omega}+\mathbf{b}\quad(1)" alt="Error Model (1)" />
+  <img src="https://latex.codecogs.com/svg.latex?\mathbf{\hat{\omega}}=\mathbf{K}\mathbf{\omega}+\mathbf{b}\quad(1)" alt="Error Model (1)" />
 </p>
 
 <p align="justify">
@@ -91,26 +79,26 @@ Where <img src="https://latex.codecogs.com/svg.latex?\mathbf{\hat{\omega}}" /> r
 </p>
 
 <p align="center">
-  <img src="https://latex.codecogs.com/svg.latex?\mathbf{K}=\begin{bmatrix}m_{xx}&m_{xy}&m_{xz}\\m_{yx}&m_{yy}&m_{yz}\\m_{zx}&m_{zy}&m_{zz}\end{bmatrix}\quad(2)" alt="Matrix K (2)" />
+  <img src="https://latex.codecogs.com/svg.latex?\mathbf{K}=\begin{bmatrix}m_{xx}&m_{xy}&m_{xz}\\m_{yx}&m_{yy}&m_{yz}\\m_{zx}&m_{zy}&m_{zz}\end{bmatrix}\quad(2)" alt="Matrix K (2)" />
 </p>
 
 <p align="justify">In this matrix, the diagonal elements <img src="https://latex.codecogs.com/svg.latex?(m_{xx},\;m_{yy},\;m_{zz})">
 represent the scale factors, while the off-diagonal elements <img src="https://latex.codecogs.com/svg.latex?(m_{ij})">
- represent non-orthogonality (misalignment) errors [3].</p>
+ represent non-orthogonality (misalignment) errors [3].</p>
 
 <p align="justify">
- Expanding Equation (1) into matrix form yields [3]:
+ Expanding Equation (1) into matrix form yields [3]:
 </p>
 
 <p align="center">
-  <img src="https://latex.codecogs.com/svg.latex?\begin{bmatrix}\hat{\omega}_x\\\hat{\omega}_y\\\hat{\omega}_z\end{bmatrix}=\begin{bmatrix}m_{xx}&m_{xy}&m_{xz}\\m_{yx}&m_{yy}&m_{yz}\\m_{zx}&m_{zy}&m_{zz}\end{bmatrix}\begin{bmatrix}\omega_x\\\omega_y\\\omega_z\end{bmatrix}+\begin{bmatrix}b_x\\b_y\\b_z\end{bmatrix}\quad(3)" alt="Expanded Matrix Equation (3)" />
+  <img src="https://latex.codecogs.com/svg.latex?\begin{bmatrix}\hat{\omega}_x\\\hat{\omega}_y\\\hat{\omega}_z\end{bmatrix}=\begin{bmatrix}m_{xx}&m_{xy}&m_{xz}\\m_{yx}&m_{yy}&m_{yz}\\m_{zx}&m_{zy}&m_{zz}\end{bmatrix}\begin{bmatrix}\omega_x\\\omega_y\\\omega_z\end{bmatrix}+\begin{bmatrix}b_x\\b_y\\b_z\end{bmatrix}\quad(3)" alt="Expanded Matrix Equation (3)" />
 </p>
 
 <p align="justify">Since misalignment angles are small in low-cost gyroscopes, only scale factors and bias errors are typically considered. The reduced model is therefore [2]:</p>
 
 <p align="center">
-  <img src="https://latex.codecogs.com/svg.latex?%5Cbegin%7Bbmatrix%7D%5Chat%7B%5Comega%7D_x%5C%5C%5Chat%7B%5Comega%7D_y%5C%5C%5Chat%7B%5Comega%7D_z%5Cend%7Bbmatrix%7D%3D%5Cbegin%7Bbmatrix%7D1%2Bs_x%260%260%5C%5C0%261%2Bs_y%260%5C%5C0%260%261%2Bs_z%5Cend%7Bbmatrix%7D%5Cbegin%7Bbmatrix%7D%5Comega_x%5C%5C%5Comega_y%5C%5C%5Comega_z%5Cend%7Bbmatrix%7D%2B%5Cbegin%7Bbmatrix%7Db_x%5C%5Cb_y%5C%5Cb_z%5Cend%7Bbmatrix%7D\quad(4)"
-       alt="Reduced Model (4)" />
+  <img src="https://latex.codecogs.com/svg.latex?%5Cbegin%7Bbmatrix%7D%5Chat%7B%5Comega%7D_x%5C%5C%5Chat%7B%5Comega%7D_y%5C%5C%5Chat%7B%5Comega%7D_z%5Cend%7Bbmatrix%7D%3D%5Cbegin%7Bbmatrix%7D1%2Bs_x%260%260%5C%5C0%261%2Bs_y%260%5C%5C0%260%261%2Bs_z%5Cend%7Bbmatrix%7D%5Cbegin%7Bbmatrix%7D%5Comega_x%5C%5C%5Comega_y%5C%5C%5Comega_z%5Cend%7Bbmatrix%7D%2B%5Cbegin%7Bbmatrix%7Db_x%5C%5Cb_y%5C%5Cb_z%5Cend%7Bbmatrix%7D\quad(4)"
+       alt="Reduced Model (4)" />
 </p>
 
 <p align="justify"> In order to solve Equation (4), a combination of static and dynamic tests using a rotary table will be performed [3]. This procedure is explained below.<p>
@@ -124,7 +112,7 @@ To determine the bias for each axis, the orthogonal gyroscope triad is positione
 </p>
 
 <p align="center">
-  <img src="https://latex.codecogs.com/svg.latex?b_i=\frac{\bar{\omega}_{i^{up}}+\bar{\omega}_{i^{down}}}{2}\quad(5)" alt="Bias Calculation (5)" />
+  <img src="https://latex.codecogs.com/svg.latex?b_i=\frac{\bar{\omega}_{i^{up}}+\bar{\omega}_{i^{down}}}{2}\quad(5)" alt="Bias Calculation (5)" />
 </p>
 
 <p align="justify">
@@ -138,7 +126,7 @@ The scale factor errors are determined using a procedure similar to the bias cal
 </p>
 
 <p align="center">
-  <img src="https://latex.codecogs.com/svg.latex?s_i=\frac{\bar{\omega}_{i^{cw}}+\bar{\omega}_{i^{ccw}}}{2\omega_{ref}}-1\quad(6)" alt="Scale Error Factor Calculation (6)" />
+  <img src="https://latex.codecogs.com/svg.latex?s_i=\frac{\bar{\omega}_{i^{cw}}+\bar{\omega}_{i^{ccw}}}{2\omega_{ref}}-1\quad(6)" alt="Scale Error Factor Calculation (6)" />
 </p>
 
 <p align="justify">
@@ -158,13 +146,13 @@ For both bias and scale factor error, the bar notation (<img src="https://latex.
 <p align="center"> <img src="https://latex.codecogs.com/svg.latex?\mathbf{\omega}=\mathbf{K}^{-1}(\mathbf{\hat{\omega}}-\mathbf{b})\quad(7)" alt="Inverse Error Model (7)" /> </p>
 
 <p align="center">
-  <img src="https://latex.codecogs.com/svg.latex?%5Cbegin%7Bbmatrix%7D%5Comega_x%5C%5C%5Comega_y%5C%5C%5Comega_z%5Cend%7Bbmatrix%7D%3D%5Cbegin%7Bbmatrix%7D1%2Bs_x%260%260%5C%5C0%261%2Bs_y%260%5C%5C0%260%261%2Bs_z%5Cend%7Bbmatrix%7D%5E%7B-1%7D%5Cleft%28%5Cbegin%7Bbmatrix%7D%5Chat%7B%5Comega%7D_x%5C%5C%5Chat%7B%5Comega%7D_y%5C%5C%5Chat%7B%5Comega%7D_z%5Cend%7Bbmatrix%7D-%5Cbegin%7Bbmatrix%7Db_x%5C%5Cb_y%5C%5Cb_z%5Cend%7Bbmatrix%7D%5Cright%29%5Cquad%288%29"
-       alt="Inverse Error Matrix Model (8)" />
+  <img src="https://latex.codecogs.com/svg.latex?%5Cbegin%7Bbmatrix%7D%5Comega_x%5C%5C%5Comega_y%5C%5C%5Comega_z%5Cend%7Bbmatrix%7D%3D%5Cbegin%7Bbmatrix%7D1%2Bs_x%260%260%5C%5C0%261%2Bs_y%260%5C%5C0%260%261%2Bs_z%5Cend%7Bbmatrix%7D%5E%7B-1%7D%5Cleft%28%5Cbegin%7Bbmatrix%7D%5Chat%7B%5Comega%7D_x%5C%5C%5Chat%7B%5Comega%7D_y%5C%5C%5Chat%7B%5Comega%7D_z%5Cend%7Bbmatrix%7D-%5Cbegin%7Bbmatrix%7Db_x%5C%5Cb_y%5C%5Cb_z%5Cend%7Bbmatrix%7D%5Cright%29%5Cquad%288%29"
+       alt="Inverse Error Matrix Model (8)" />
 </p>
 
 <p align="center">
-  <img src="https://latex.codecogs.com/svg.latex?%5Comega_x%3D%5Cfrac%7B%5Chat%7B%5Comega%7D_x-b_x%7D%7B1%2Bs_x%7D%2C%5Cquad%5Comega_y%3D%5Cfrac%7B%5Chat%7B%5Comega%7D_y-b_y%7D%7B1%2Bs_y%7D%2C%5Cquad%5Comega_z%3D%5Cfrac%7B%5Chat%7B%5Comega%7D_z-b_z%7D%7B1%2Bs_z%7D%5Cquad%289%29"
-       alt="Scalar Calibration Formulas (9)" />
+  <img src="https://latex.codecogs.com/svg.latex?%5Comega_x%3D%5Cfrac%7B%5Chat%7B%5Comega%7D_x-b_x%7D%7B1%2Bs_x%7D%2C%5Cquad%5Comega_y%3D%5Cfrac%7B%5Chat%7B%5Comega%7D_y-b_y%7D%7B1%2Bs_y%7D%2C%5Cquad%5Comega_z%3D%5Cfrac%7B%5Chat%7B%5Comega%7D_z-b_z%7D%7B1%2Bs_z%7D%5Cquad%289%29"
+       alt="Scalar Calibration Formulas (9)" />
 </p>
 
 <h2>Thermal Calibration</h2>
@@ -175,17 +163,8 @@ Thermal calibration is performed to model the temperature dependencies of the gy
 </p>
 
 <ul>
-  <li>
-    <p align="justify">
-      <strong>Thermal Soak Method:</strong> The MEMS sensor is placed inside a thermal chamber and allowed to stabilize at a series of discrete temperature setpoints. Data collection is initiated only after the sensor has reached thermal equilibrium at each target temperature. By recording measurements and calculating sensor errors at these stable points, a dataset of error-versus-temperature values is generated. Errors at intermediate temperatures can then be estimated using interpolation techniques [4]. 
-    </p>
-  </li>
-  <li>
-<p align="justify">
-  <strong>Thermal Ramp Method:</strong> In this approach, the sensor is polled continuously while the thermal chamber temperature is linearly increased or decreased across the desired operating range. While this method is inherently faster because it eliminates the time-consuming stabilization periods, it introduces two significant sources of error. First, a thermal gradient often exists between the inertial sensor core and the temperature sensor, leading to measurement discrepancies similar to hysteresis. Second, because the temperature evolves dynamically during the data acquisition window for a single calibration scheme, the resulting error parameters are derived from data collected at varying temperatures rather than a single thermal point [4].
-</p>
-
-  </li>
+<li><p align="justify"><strong>Thermal Soak Method:</strong> The MEMS sensor is placed inside a thermal chamber and allowed to stabilize at a series of discrete temperature setpoints. Data collection is initiated only after the sensor has reached thermal equilibrium at each target temperature. By recording measurements and calculating sensor errors at these stable points, a dataset of error-versus-temperature values is generated. Errors at intermediate temperatures can then be estimated using interpolation techniques [4].</p></li>
+<li><p align="justify"><strong>Thermal Ramp Method:</strong> In this approach, the sensor is polled continuously while the thermal chamber temperature is linearly increased or decreased across the desired operating range. While this method is inherently faster because it eliminates the time-consuming stabilization periods, it introduces two significant sources of error. First, a thermal gradient often exists between the inertial sensor core and the temperature sensor, leading to measurement discrepancies similar to hysteresis. Second, because the temperature evolves dynamically during the data acquisition window for a single calibration scheme, the resulting error parameters are derived from data collected at varying temperatures rather than a single thermal point [4].</p></li>
 </ul>
 
 <p align="justify">
@@ -200,39 +179,38 @@ Although time-intensive, the soak method ensures the most reliable error charact
 
 <p align="justify"> There are two distinct options for powering the system: <strong>E5V</strong> (External 5V) or <strong>U5V</strong> (USB 5V). <strong>These modes cannot coexist; you must choose one.</strong> </p>
 
-<h3>Option 1: E5V</h3> <p align="justify"> In this mode, the power subsystem uses an LM2596 step-down switching regulator. This component regulates the input voltage from a main battery pack (two Lithium-Ion cells) to the stable 5V required by the NUCLEO-F446RE board. </p> <ul> <li><strong>Switch:</strong> A switch is required to power the system remotely. Solder a cable to each terminal of the switch and secure the free ends to the <strong>J5</strong> terminal on the PCB. If a switch is not used, a jumper wire must be installed in J5 to close the circuit; otherwise, the system will not power on.</li> <li><strong>Battery:</strong> The Li-Ion batteries must be charged using an appropriate charger and placed in the battery holder. Connect the battery holder cables to the <strong>J4</strong> power terminal, strictly following the polarity markings on the PCB silkscreen.</li> </ul>
+<h3>Option 1: E5V</h3> <p align="justify"> In this mode, the power subsystem uses an LM2596 step-down switching regulator. This component regulates the input voltage from a main battery pack (two Lithium-Ion cells) to the stable 5V required by the NUCLEO-F446RE board. </p> <ul><li><strong>Switch:</strong> A switch is required to power the system remotely. Solder a cable to each terminal of the switch and secure the free ends to the <strong>J5</strong> terminal on the PCB. If a switch is not used, a jumper wire must be installed in J5 to close the circuit; otherwise, the system will not power on.</li> <li><strong>Battery:</strong> The Li-Ion batteries must be charged using an appropriate charger and placed in the battery holder. Connect the battery holder cables to the <strong>J4</strong> power terminal, strictly following the polarity markings on the PCB silkscreen.</li></ul>
 
-<p align="justify"> <strong>WARNING:</strong> Failure to respect the following order of operations may damage the NUCLEO-F446RE board or the PC. </p> <ol> <li>Connect a jumper between <strong>Pin 2 and Pin 3</strong> of header <strong>JP5</strong> on the NUCLEO-F446RE board.</li> <li>Ensure that jumper <strong>JP1</strong> on the NUCLEO-F446RE board is <strong>removed</strong>.</li> <li>Mount the custom PCB onto the NUCLEO-F446RE board.</li> <li>Connect the battery holder cables to the <strong>J4</strong> terminal on the PCB (observe polarity).</li> <li>Verify that the red <strong>LD3 LED</strong> on the NUCLEO-F446RE board turns on.</li> <li>Only after these steps, if code upload is required, connect the PC to the USB connector <strong>CN1</strong>.</li> </ol>
+<p align="justify"> <strong>WARNING:</strong> Failure to respect the following order of operations may damage the NUCLEO-F446RE board or the PC. </p> <ol><li>Connect a jumper between <strong>Pin 2 and Pin 3</strong> of header <strong>JP5</strong> on the NUCLEO-F446RE board.</li> <li>Ensure that jumper <strong>JP1</strong> on the NUCLEO-F446RE board is <strong>removed</strong>.</li> <li>Mount the custom PCB onto the NUCLEO-F446RE board.</li> <li>Connect the battery holder cables to the <strong>J4</strong> terminal on the PCB (observe polarity).</li> <li>Verify that the red <strong>LD3 LED</strong> on the NUCLEO-F446RE board turns on.</li> <li>Only after these steps, if code upload is required, connect the PC to the USB connector <strong>CN1</strong>.</li></ol>
 
 <h3>Option 2: U5V</h3> <p align="justify"> In this mode, the system is powered directly via the ST-LINK USB connector (CN1). You may use a PC or a portable power bank capable of supplying 5V and at least 300 mA. </p> <p align="justify"> <strong>Note:</strong> If using a power bank, the firmware must be uploaded to the board before connecting the power bank. If using a PC, the code can be uploaded while powered. </p>
 
-<p align="justify"> <strong>WARNING:</strong> Failure to respect the following order of operations may damage the board. </p> <ol> <li>Connect a jumper between <strong>Pin 1 and Pin 2</strong> of header <strong>JP5</strong> on the NUCLEO-F446RE board (this differs from E5V mode).</li> <li>Ensure that jumper <strong>JP1</strong> on the NUCLEO-F446RE board is <strong>removed</strong>.</li> <li>Mount the custom PCB onto the NUCLEO-F446RE board.</li> <li>Connect the PC or Power Bank to the USB connector <strong>CN1</strong> on the NUCLEO-F446RE.</li> </ol>
+<p align="justify"> <strong>WARNING:</strong> Failure to respect the following order of operations may damage the board. </p> <ol><li>Connect a jumper between <strong>Pin 1 and Pin 2</strong> of header <strong>JP5</strong> on the NUCLEO-F446RE board (this differs from E5V mode).</li> <li>Ensure that jumper <strong>JP1</strong> on the NUCLEO-F446RE board is <strong>removed</strong>.</li> <li>Mount the custom PCB onto the NUCLEO-F446RE board.</li> <li>Connect the PC or Power Bank to the USB connector <strong>CN1</strong> on the NUCLEO-F446RE.</li></ol>
 
 <p align="justify"> <strong>Note:</strong> During the actual tests, using a battery (E5V) or power bank (U5V) is mandatory. A USB connection to a PC is not feasible due to the cable. </p>
 
 <h2>Calibration Procedure</h2>
 
-<p align="justify"> The custom PCB includes a push-button that controls the data logging process. Pressing the button initiates an uninterrupted gyroscope data logging cycle for a specific duration <em>T</em>. Once the cycle finishes, another can be initiated.</p> <ul> 
-
-<li><p align="justify"><strong>Gyroscope Biases - Static Test:</strong>
-Each cycle corresponds to a specific position.</p>
-<li><p align="justify"><strong>Gyroscope Scale Factor Errors - Dynamic Rotary Test:</strong> Each cycle corresponds to a specific rotation.</p>
-<li><p align="justify"><strong>Gyroscope Biases - Static Thermal Test:</strong> Each cycle corresponds to a specific temperature stability point. The button logic is mandatory here, as the time required for the chamber to stabilize varies and cannot be automated with a simple timer. </p>
+<p align="justify"> The custom PCB includes a push-button that controls the data logging process. Pressing the button initiates an uninterrupted gyroscope data logging cycle for a specific duration <em>T</em>. Once the cycle finishes, another can be initiated.</p>
+<ol type="1">
+<li><p align="justify"><strong>Gyroscope Biases - Static Test:</strong> Each cycle corresponds to a specific position.</p></li>
+<li><p align="justify"><strong>Gyroscope Scale Factor Errors - Dynamic Rotary Test:</strong> Each cycle corresponds to a specific rotation.</p></li>
+<li><p align="justify"><strong>Gyroscope Biases - Static Thermal Test:</strong> Each cycle corresponds to a specific temperature stability point. The button logic is mandatory here, as the time required for the chamber to stabilize varies and cannot be automated with a simple timer. </p></li>
+</ol>
 
 <p align="justify"> The code supporting this button functionality is found in the <code>button_logic</code> branch. </p>
 
-<p align="justify"> <strong>Alternative for High-Speed Rotation:</strong> If the rotary table spins too fast to safely press the button, a timer-based routine can be used to log data automatically without physical interaction. This code is found in the <code>timer_logic_rotary</code> branch. </p>
+<p align="justify"> <strong>NOT DEVELOPED YET Alternative for High-Speed Rotation:</strong> If the rotary table spins too fast to safely press the button, a timer-based routine can be used to log data automatically without physical interaction. This code is found in the <code>timer_logic_rotary</code> branch. </p>
 
 <h3>Firmware Setup</h3>
 
 <p align="justify"> If the NUCLEO-F446RE board has not been programmed, follow these instructions: </p>
 
 <ol type="1">
-<li> <p align="justify"> <strong>Clone the Repository:</strong> Open your terminal, navigate to your STM32CubeIDE workspace directory, and execute: </p> <pre><code>git clone https://github.com/fectec/MO-2_GyroscopeVerification.git</code></pre> </li>
-
-<li> <p align="justify"> <strong>Import Project:</strong> In STM32CubeIDE, go to <strong>File > Open Projects from File System</strong>. Browse to the <code>MO-2_GyroscopeVerification</code> folder. Ensure <em>"Search for nested projects"</em> and <em>"Detect and configure project natures"</em> are checked, then click <strong>Finish</strong>. </p> </li>
-
-<li> <p align="justify"> <strong>Flash Firmware:</strong> Connect the board to the PC via USB. Open <code>Core/Src/main.c</code>, then click the <strong>Run</strong> button (Play icon) to compile and upload. </p> </li> </ol>
+<li><p align="justify"> <strong>Clone the Repository:</strong> Open your terminal, navigate to your STM32CubeIDE workspace directory, and execute: </p> <pre><code>git clone https://github.com/fectec/MO-2_GyroscopeVerification.git</code></pre></li>
+<li><p align="justify"> <strong>Import Project:</strong> In STM32CubeIDE, go to <strong>File > Open Projects from File System</strong>. Browse to the <code>MO-2_GyroscopeVerification</code> folder. Ensure <em>"Search for nested projects"</em> and <em>"Detect and configure project natures"</em> are checked, then click <strong>Finish</strong>. </p></li>
+<li><p align="justify"> <strong>Flash Firmware:</strong> Connect the board to the PC via USB. Open <code>Core/Src/main.c</code>, then click the <strong>Run</strong> button (Play icon) to compile and upload. </p></li>
+</ol>
 
 <p align="justify"> To switch between the manual button logic and the automatic timer logic, change the active Git branch in your terminal. STM32CubeIDE will automatically update the files. </p>
 
@@ -257,72 +235,36 @@ The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The calculation o
 <p align="justify"><strong>Execution Steps:</strong></p>
 
 <ol type="1">
-  <li>
-    <p align="justify">
-      <strong>Configure Firmware:</strong> In STM32CubeIDE, open <code>Core/Src/main.c</code> and modify <code>#define LOG_DURATION_MS</code> to set the log duration <em>T</em> (in milliseconds) for each button press.
-    </p>
-  </li>
-
-  <li>
-    <p align="justify">
-      <strong>Power Up:</strong> Connect the Battery Pack (E5V) or Power Bank (U5V). If using E5V, turn on the switch. Verify the PCB LED is toggling (blinking), indicating Idle mode. Ensure no USB cables are connected.
-    </p>
-  </li>
-
-  <li>
-    <p align="justify">
-      <strong>Perform Data Logging:</strong> Perform the logging routine for each of the required positions. <strong>CRITICAL: You must perform the tests in the exact order shown (Position 1 &rarr; Position 2 &rarr; Position 3).</strong> For every position listed below:
-    </p>
-    <ul>
-      <li>Place the system on a leveled surface matching the reference image.</li>
-      <li>Press the button to start logging. The PCB LED will turn <strong>Solid ON</strong>.</li>
-      <li>Wait for the PCB LED to return to <strong>Blinking</strong> (cycle complete) before moving to the next position.</li>
-    </ul>
-
-  <p align="center">
-    <strong>Position 1</strong><br>
-    <img src="https://github.com/user-attachments/assets/ce7d5c47-3d76-469f-8495-888691b38281" alt="Position 1 Alignment"><br><br>
-  </p>
-
-  <p align="center">
-  <strong>Position 2</strong><br>
-    <img src="https://github.com/user-attachments/assets/689e6140-b162-4c93-ad7c-e60c2f0bd7d3" alt="Position 2 Alignment"><br><br>
-  </p> 
-
-  <p align="center">
-  <strong>Position 3</strong><br>
-    <img src="https://github.com/user-attachments/assets/dc66da5c-dbad-4d4e-9aac-d4749e14ad1c" alt="Position 3 Alignment">
-  </p>
-
-  </li>
-
-  <li>
-    <p align="justify">
-      <strong>Connect to PC:</strong>
-    </p>
-    <ul>
-      <li>If using <strong>E5V</strong>: Keep the batteries connected and switch ON. Connect the USB cable to the PC.</li>
-      <li>If using <strong>U5V</strong>: Disconnect the power bank and connect the USB cable to the PC.</li>
-    </ul>
-  </li>
-
-  <li>
-    <p align="justify">
-      <strong>Identify Port:</strong> Open Windows Device Manager and find the COM port number for <strong>STMicroelectronics STLink Virtual COM Port</strong>.
-    </p>
-  </li>
-
-  <li>
-    <p align="justify">
-      <strong>Run Analysis:</strong> Update the <code>COM_PORT</code> variable in the Python script and run it.
-    </p>
-  </li>
-
-  <li>
-    <p align="justify">
-      <strong>Results:</strong> The script generates a text file containing the logs and a summary of the results, as well as a plot displaying the averaged angular rates (<img src="https://math.vercel.app?from=\bar{\omega}_{i^{up}}" /> and <img src="https://math.vercel.app?from=\bar{\omega}_{i^{down}}" />) per axis, along with the calculated biases.
-    </p>
-  </li>
+<li><p align="justify"><strong>Configure Firmware:</strong> In STM32CubeIDE, open <code>Core/Src/main.c</code> and modify <code>#define LOG_DURATION_MS</code> to set the log duration <em>T</em> (in milliseconds) for each button press.</p></li>
+<li><p align="justify"><strong>Power Up:</strong> Connect the Battery Pack (E5V) or Power Bank (U5V). If using E5V, turn on the switch. Verify the PCB LED is toggling (blinking), indicating Idle mode. Ensure no USB cables are connected.</p></li>
+<li><p align="justify"><strong>Perform Data Logging:</strong> Perform the logging routine for each of the required positions. <strong>CRITICAL: You must perform the tests in the exact order shown (Position 1 &rarr; Position 2 &rarr; Position 3).</strong> For every position listed below:</p>
+<ul>
+<li>Place the system on a leveled surface matching the reference image.</li>
+<li>Press the button to start logging. The PCB LED will turn <strong>Solid ON</strong>.</li>
+<li>Wait for the PCB LED to return to <strong>Blinking</strong> (cycle complete) before moving to the next position.</li>
+</ul>
+<p align="center">
+<strong>Position 1</strong><br>
+<img src="https://github.com/user-attachments/assets/ce7d5c47-3d76-469f-8495-888691b38281" alt="Position 1 Alignment"><br><br>
+</p>
+<p align="center">
+<strong>Position 2</strong><br>
+<img src="https://github.com/user-attachments/assets/689e6140-b162-4c93-ad7c-e60c2f0bd7d3" alt="Position 2 Alignment"><br><br>
+</p>
+<p align="center">
+<strong>Position 3</strong><br>
+<img src="https://github.com/user-attachments/assets/dc66da5c-dbad-4d4e-9aac-d4749e14ad1c" alt="Position 3 Alignment">
+</p>
+</li>
+<li><p align="justify"><strong>Connect to PC:</strong></p>
+<ul>
+<li>If using <strong>E5V</strong>: Keep the batteries connected and switch ON. Connect the USB cable to the PC.</li>
+<li>If using <strong>U5V</strong>: Disconnect the power bank and connect the USB cable to the PC.</li>
+</ul>
+</li>
+<li><p align="justify"><strong>Identify Port:</strong> Open Windows Device Manager and find the COM port number for <strong>STMicroelectronics STLink Virtual COM Port</strong>.</p></li>
+<li><p align="justify"><strong>Run Analysis:</strong> Update the <code>COM_PORT</code> variable in the Python script and run it.</p></li>
+<li><p align="justify"><strong>Results:</strong> The script generates a text file containing the logs and a summary of the results, as well as a plot displaying the averaged angular rates (<img src="https://math.vercel.app?from=\bar{\omega}_{i^{up}}" /> and <img src="https://math.vercel.app?from=\bar{\omega}_{i^{down}}" />) per axis, along with the calculated biases.</p></li>
 </ol>
 
 <h3>Gyroscope Scale Factor Errors - Dynamic Rotary Test:</h3>
@@ -338,82 +280,44 @@ The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The calculation o
 <p align="justify"><strong>Execution Steps:</strong></p>
 
 <ol type="1">
-  <li>
-    <p align="justify">
-      <strong>Configure Firmware:</strong> In STM32CubeIDE, open <code>Core/Src/main.c</code> and modify <code>#define LOG_DURATION_MS</code> to set the log duration <em>T</em> (in milliseconds) for each button press.
-    </p>
-  </li>
-
-  <li><strong>Configure Script:</strong> In the Python script, update the variable <code>TABLE_GROUND_TRUTH_DPS</code> to match the angular velocity you will set on the rotary table.</li>
-
-  <li>
-    <p align="justify">
-      <strong>Power Up:</strong> Connect the Battery Pack (E5V) or Power Bank (U5V). If using E5V, turn on the switch. Verify the PCB LED is toggling (blinking), indicating Idle mode. Ensure no USB cables are connected.
-    </p>
-  </li>
-
-<li>
-  <p align="justify">
-    <strong>Perform Data Logging:</strong> Execute the logging sequence for the three positions shown below. 
-    <strong>CRITICAL: You must perform the tests in the exact order shown (Position 1 (CW &rarr; CCW) &rarr; Position 2 (CW &rarr; CCW) &rarr; Position 3 (CW &rarr; CCW)).</strong> 
-  </p>
-
-  <p align="center">
-    <strong>Position 1</strong><br>
-    <img src="https://github.com/user-attachments/assets/3f993f3c-cc5a-4cf2-a2cc-20ae1826a5ea" alt="Position 1 Alignment"><br><br>
-  </p>
-
-  <p align="center">
-  <strong>Position 2</strong><br>
-    <img src="https://github.com/user-attachments/assets/80379b77-40c4-4bce-9b40-664e33ace2be" alt="Position 2 Alignment"><br><br>
-  </p> 
-
-  <p align="center">
-  <strong>Position 3</strong><br>
-    <img src="https://github.com/user-attachments/assets/a56a6f36-c45e-4cf2-ae19-bbd03feb259b" alt="Position 3 Alignment">
-  </p>
-
-  <p align="justify">For <strong>each</strong> position, repeat the following steps:</p>
-  <ul>
-    <li>Place the system on the rotary table as shown in the corresponding image.</li>
-    <li><strong>Clockwise (CW):</strong> Configure the table to spin CW at the defined velocity and start rotation. Press the button to log (LED solid ON). When the LED returns to blinking, stop the table.</li>
-    <li><strong>Counter-Clockwise (CCW):</strong> Configure the table to spin CCW at the defined velocity and start rotation. Press the button to log (LED solid ON). When the LED returns to blinking, stop the table.</li>
-  </ul>
+<li><p align="justify"><strong>Configure Firmware:</strong> In STM32CubeIDE, open <code>Core/Src/main.c</code> and modify <code>#define LOG_DURATION_MS</code> to set the log duration <em>T</em> (in milliseconds) for each button press.</p></li>
+<li><strong>Configure Script:</strong> In the Python script, update the variable <code>TABLE_GROUND_TRUTH_DPS</code> to match the angular velocity you will set on the rotary table.</li>
+<li><p align="justify"><strong>Power Up:</strong> Connect the Battery Pack (E5V) or Power Bank (U5V). If using E5V, turn on the switch. Verify the PCB LED is toggling (blinking), indicating Idle mode. Ensure no USB cables are connected.</p></li>
+<li><p align="justify"><strong>Perform Data Logging:</strong> Execute the logging sequence for the three positions shown below. <strong>CRITICAL: You must perform the tests in the exact order shown (Position 1 (CW &rarr; CCW) &rarr; Position 2 (CW &rarr; CCW) &rarr; Position 3 (CW &rarr; CCW)).</strong></p>
+<p align="center">
+<strong>Position 1</strong><br>
+<img src="https://github.com/user-attachments/assets/3f993f3c-cc5a-4cf2-a2cc-20ae1826a5ea" alt="Position 1 Alignment"><br><br>
+</p>
+<p align="center">
+<strong>Position 2</strong><br>
+<img src="https://github.com/user-attachments/assets/80379b77-40c4-4bce-9b40-664e33ace2be" alt="Position 2 Alignment"><br><br>
+</p>
+<p align="center">
+<strong>Position 3</strong><br>
+<img src="https://github.com/user-attachments/assets/a56a6f36-c45e-4cf2-ae19-bbd03feb259b" alt="Position 3 Alignment">
+</p>
+<p align="justify">For <strong>each</strong> position, repeat the following steps:</p>
+<ul>
+<li>Place the system on the rotary table as shown in the corresponding image.</li>
+<li><strong>Clockwise (CW):</strong> Configure the table to spin CW at the defined velocity and start rotation. Press the button to log (LED solid ON). When the LED returns to blinking, stop the table.</li>
+<li><strong>Counter-Clockwise (CCW):</strong> Configure the table to spin CCW at the defined velocity and start rotation. Press the button to log (LED solid ON). When the LED returns to blinking, stop the table.</li>
+</ul>
 </li>
-
-  <li>
-    <p align="justify">
-      <strong>Connect to PC:</strong>
-    </p>
-    <ul>
-      <li>If using <strong>E5V</strong>: Keep the batteries connected and switch ON. Connect the USB cable to the PC.</li>
-      <li>If using <strong>U5V</strong>: Disconnect the power bank and connect the USB cable to the PC.</li>
-    </ul>
-  </li>
-
-  <li>
-    <p align="justify">
-      <strong>Identify Port:</strong> Open Windows Device Manager and find the COM port number for <strong>STMicroelectronics STLink Virtual COM Port</strong>.
-    </p>
-  </li>
-
-  <li>
-    <p align="justify">
-      <strong>Run Analysis:</strong> Update the <code>COM_PORT</code> variable in the Python script and run it.
-    </p>
-  </li>
-
-  <li>
-    <p align="justify">
-      <strong>Results:</strong> The script generates a text file containing the logs and a summary of the results, as well as a plot displaying the averaged angular rates (<img src="https://math.vercel.app?from=\bar{\omega}_{i^{cw}}" /> and <img src="https://math.vercel.app?from=\bar{\omega}_{i^{ccw}}" />) per axis, along with the calculated scale factor errors.
-    </p>
-  </li>
+<li><p align="justify"><strong>Connect to PC:</strong></p>
+<ul>
+<li>If using <strong>E5V</strong>: Keep the batteries connected and switch ON. Connect the USB cable to the PC.</li>
+<li>If using <strong>U5V</strong>: Disconnect the power bank and connect the USB cable to the PC.</li>
+</ul>
+</li>
+<li><p align="justify"><strong>Identify Port:</strong> Open Windows Device Manager and find the COM port number for <strong>STMicroelectronics STLink Virtual COM Port</strong>.</p></li>
+<li><p align="justify"><strong>Run Analysis:</strong> Update the <code>COM_PORT</code> variable in the Python script and run it.</p></li>
+<li><p align="justify"><strong>Results:</strong> The script generates a text file containing the logs and a summary of the results, as well as a plot displaying the averaged angular rates (<img src="https://math.vercel.app?from=\bar{\omega}_{i^{cw}}" /> and <img src="https://math.vercel.app?from=\bar{\omega}_{i^{ccw}}" />) per axis, along with the calculated scale factor errors.</p></li>
 </ol>
 
 <h3>Gyroscope Biases - Static Thermal Test:</h3>
 
 <p align="justify">
-The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The plotting of the angular velocity  versus temperature is performed by a Python script on the PC.
+The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The plotting of the angular velocity  versus temperature is performed by a Python script on the PC.
 </p>
 
 <p align="justify">
@@ -423,89 +327,38 @@ The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The plotting of t
 <p align="justify"><strong>Execution Steps:</strong></p>
 
 <ol type="1">
-  <li>
-    <p align="justify">
-      <strong>Configure Firmware:</strong> In STM32CubeIDE, open <code>Core/Src/main.c</code> and modify <code>#define LOG_DURATION_MS</code> to set the log duration <em>T</em> (in milliseconds) for each button press.
-    </p>
-  </li>
-
-  <li>
-    <p align="justify">
-      <strong>Power Up:</strong> Connect the Battery Pack (E5V) or Power Bank (U5V). If using E5V, turn on the switch. Verify the PCB LED is toggling (blinking), indicating Idle mode. Ensure no USB cables are connected.
-    </p>
-  </li>
-
-<li>
-  <p align="justify">
-    <strong>Perform Data Logging:</strong> Place the system inside the thermal chamber as shown in Position 1.
-  </p>  
-
-  <p align="center">
-    <strong>Position 1</strong><br>
-    <img src="https://github.com/user-attachments/assets/66444492-c323-4fbd-a233-f10cddc64c22" alt="Position 1 Alignment"><br><br>
-  </p> 
-    
-  <p>For each temperature point defined in your test plan, execute the following sequence:
-  </p>
-  <ul>
-    <li><strong>Set Temperature:</strong> Configure the thermal chamber to the target temperature and allow sufficient time for it to stabilize (soak time).</li>
-    <li><strong>Start Logging:</strong> Press the button on the PCB to start logging. The LED will stop blinking and remain <strong>solid ON</strong>.</li>
-    <li><strong>Wait for Completion:</strong> When the logging cycle finishes, the LED will return to blinking.</li>
-    <li><strong>Repeat:</strong> Change the chamber temperature to the next point and repeat the steps above.</li>
-  </ul>
+<li><p align="justify"><strong>Configure Firmware:</strong> In STM32CubeIDE, open <code>Core/Src/main.c</code> and modify <code>#define LOG_DURATION_MS</code> to set the log duration <em>T</em> (in milliseconds) for each button press.</p></li>
+<li><p align="justify"><strong>Power Up:</strong> Connect the Battery Pack (E5V) or Power Bank (U5V). If using E5V, turn on the switch. Verify the PCB LED is toggling (blinking), indicating Idle mode. Ensure no USB cables are connected.</p></li>
+<li><p align="justify"><strong>Perform Data Logging:</strong> Place the system inside the thermal chamber as shown in Position 1.</p>
+<p align="center">
+<strong>Position 1</strong><br>
+<img src="https://github.com/user-attachments/assets/66444492-c323-4fbd-a233-f10cddc64c22" alt="Position 1 Alignment"><br><br>
+</p>
+<p>For each temperature point defined in your test plan, execute the following sequence:
+</p>
+<ul>
+<li><strong>Set Temperature:</strong> Configure the thermal chamber to the target temperature and allow sufficient time for it to stabilize (soak time).</li>
+<li><strong>Start Logging:</strong> Press the button on the PCB to start logging. The LED will stop blinking and remain <strong>solid ON</strong>.</li>
+<li><strong>Wait for Completion:</strong> When the logging cycle finishes, the LED will return to blinking.</li>
+<li><strong>Repeat:</strong> Change the chamber temperature to the next point and repeat the steps above.</li>
+</ul>
 </li>
-
-  <li>
-    <p align="justify">
-      <strong>Connect to PC:</strong>
-    </p>
-    <ul>
-      <li>If using <strong>E5V</strong>: Keep the batteries connected and switch ON. Connect the USB cable to the PC.</li>
-      <li>If using <strong>U5V</strong>: Disconnect the power bank and connect the USB cable to the PC.</li>
-    </ul>
-  </li>
-
-  <li>
-    <p align="justify">
-      <strong>Identify Port:</strong> Open Windows Device Manager and find the COM port number for <strong>STMicroelectronics STLink Virtual COM Port</strong>.
-    </p>
-  </li>
-
-  <li>
-    <p align="justify">
-      <strong>Run Analysis:</strong> Update the <code>COM_PORT</code> variable in the Python script and run it.
-    </p>
-  </li>
-
-  <li>
-    <p align="justify">
-      <strong>Results:</strong> The script generates a text file containing the logs and a summary of the results, as well as a plot displaying the averaged angular rates for each axis at each temperature point.
-    </p>
-  </li>
+<li><p align="justify"><strong>Connect to PC:</strong></p>
+<ul>
+<li>If using <strong>E5V</strong>: Keep the batteries connected and switch ON. Connect the USB cable to the PC.</li>
+<li>If using <strong>U5V</strong>: Disconnect the power bank and connect the USB cable to the PC.</li>
+</ul>
+</li>
+<li><p align="justify"><strong>Identify Port:</strong> Open Windows Device Manager and find the COM port number for <strong>STMicroelectronics STLink Virtual COM Port</strong>.</p></li>
+<li><p align="justify"><strong>Run Analysis:</strong> Update the <code>COM_PORT</code> variable in the Python script and run it.</p></li>
+<li><p align="justify"><strong>Results:</strong> The script generates a text file containing the logs and a summary of the results, as well as a plot displaying the averaged angular rates for each axis at each temperature point.</p></li>
 </ol>
 
 <h2>References</h2>
 
 <ol>
-  <li>
-    <p align="justify">
-      Kyushu Institute of Technology, "Kyutech Brochure 2024," Kitakyushu, Japan, 2024. [Online]. Available: <a href="https://www.kyutech.ac.jp//media/014/202404/brochure2024.pdf">https://www.kyutech.ac.jp//media/014/202404/brochure2024.pdf</a>
-    </p>
-  </li>
-  <li>
-    <p align="justify">
-      Z. Yampolsky and I. Klein, "Data-Driven Gyroscope Calibration," <em>arXiv preprint arXiv:2410.12485</em>, 2024. [Online]. Available: <a href="https://arxiv.org/pdf/2410.12485">https://arxiv.org/pdf/2410.12485</a>
-    </p>
-  </li>
-  <li>
-    <p align="justify">
-      D. Royo Serrano, "Development of a calibration procedure for gyroscopes in CubeSat missions," Master's thesis, Luleå University of Technology, Luleå, Sweden, 2021. [Online]. Available: <a href="https://www.diva-portal.org/smash/get/diva2:1537570/FULLTEXT01.pdf">https://www.diva-portal.org/smash/get/diva2:1537570/FULLTEXT01.pdf</a>
-    </p>
-  <li>
-    <p align="justify">
-      X. Niu, Y. Li, H. Zhang, Q. Wang, and Y. Ban, "Fast Thermal Calibration of Low-Grade Inertial Sensors and Inertial Measurement Units," <em>Sensors</em>, vol. 13, no. 9, pp. 12192-12217, 2013. [Online]. Available: <a href="https://doi.org/10.3390/s130912192">https://doi.org/10.3390/s130912192</a>
-    </p>
-  </li>
-</ol>
-  </li>
+<li><p align="justify">Kyushu Institute of Technology, "Kyutech Brochure 2024," Kitakyushu, Japan, 2024. [Online]. Available: <a href="https://www.kyutech.ac.jp//media/014/202404/brochure2024.pdf">https://www.kyutech.ac.jp//media/014/202404/brochure2024.pdf</a></p></li>
+<li><p align="justify">Z. Yampolsky and I. Klein, "Data-Driven Gyroscope Calibration," <em>arXiv preprint arXiv:2410.12485</em>, 2024. [Online]. Available: <a href="https://arxiv.org/pdf/2410.12485">https://arxiv.org/pdf/2410.12485</a></p></li>
+<li><p align="justify">D. Royo Serrano, "Development of a calibration procedure for gyroscopes in CubeSat missions," Master's thesis, Luleå University of Technology, Luleå, Sweden, 2021. [Online]. Available: <a href="https://www.diva-portal.org/smash/get/diva2:1537570/FULLTEXT01.pdf">https://www.diva-portal.org/smash/get/diva2:1537570/FULLTEXT01.pdf</a></p></li>
+<li><p align="justify">X. Niu, Y. Li, H. Zhang, Q. Wang, and Y. Ban, "Fast Thermal Calibration of Low-Grade Inertial Sensors and Inertial Measurement Units," <em>Sensors</em>, vol. 13, no. 9, pp. 12192-12217, 2013. [Online]. Available: <a href="https://doi.org/10.3390/s130912192">https://doi.org/10.3390/s130912192</a></p></li>
 </ol>
