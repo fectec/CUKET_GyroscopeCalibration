@@ -229,7 +229,7 @@ The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The calculation o
 </p>
 
 <p align="justify">
-<strong>Prerequisite:</strong> Download the script located at <code>MO-2_GyroscopeVerification/PythonScripts/gyro_biases_static_test.py</code>. This script is compatible with Windows.
+<strong>Prerequisite:</strong> Download the script located at <code>MO-2_GyroscopeVerification/PythonScripts/gyro_static_test.py</code>. This script is compatible with Windows.
 </p>
 
 <p align="justify"><strong>Execution Steps:</strong></p>
@@ -276,7 +276,7 @@ The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The calculation o
 </p>
 
 <p align="justify">
-<strong>Prerequisite:</strong> Download the script located at <code>MO-2_GyroscopeVerification/PythonScripts/gyro_scale_factor_errors_dynamic_rotary_test.py</code>. This script is compatible with Windows.
+<strong>Prerequisite:</strong> Download the script located at <code>MO-2_GyroscopeVerification/PythonScripts/gyro_dynamic_test.py</code>. This script is compatible with Windows.
 </p>
 
 <p align="justify"><strong>Execution Steps:</strong></p>
@@ -323,7 +323,7 @@ This procedure applies the calculated biases and scale factor errors to a select
 </p>
 
 <p align="justify">
-<strong>Prerequisite:</strong> Download the script located at <code>MO-2_GyroscopeVerification/PythonScripts/gyro_calibration.py</code>.
+<strong>Prerequisite:</strong> Download the script located at <code>MO-2_GyroscopeVerification/PythonScripts/log_gyro_calibration.py</code>.
 </p>
 
 <p align="justify"><strong>Execution Steps:</strong></p>
@@ -374,7 +374,7 @@ The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The plotting of t
 </p>
 
 <p align="justify">
-<strong>Prerequisite:</strong> Download the script located at <code>MO-2_GyroscopeVerification/PythonScripts/gyro_biases_static_thermal_test.py</code>. This script is compatible with Windows.
+<strong>Prerequisite:</strong> Download the script located at <code>MO-2_GyroscopeVerification/PythonScripts/gyro_static_thermal_test.py</code>. This script is compatible with Windows.
 </p>
 
 <p align="justify"><strong>Execution Steps:</strong></p>

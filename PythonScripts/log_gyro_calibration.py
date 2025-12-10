@@ -5,7 +5,7 @@ import os
 # ================= USER CONFIGURATION =================
 
 # REPLACE THIS with your actual file name
-LOG_FILE_NAME = "LOG_FILE_NAME.txt"
+LOG_FILE_NAME = "TEST.txt"
 
 # Calibration Variables
 b_x = 0.0

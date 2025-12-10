@@ -196,7 +196,7 @@ def parse_and_plot():
         plt.scatter(y_avgs, temps, color='deepskyblue', s=80, label='Y-axis', zorder=3)
         plt.scatter(z_avgs, temps, color='purple', s=80, label='Z-axis', zorder=3)
 
-        plt.title(f"Gyroscope Bias vs Temperature\n(Static Thermal Test)", fontsize=14, fontweight='bold')
+        plt.title(f"Gyroscope Readings vs Temperature\n(Static Thermal Test)", fontsize=14, fontweight='bold')
         plt.ylabel("Temperature [°C]", fontsize=12, fontweight='bold')
         plt.xlabel("Angular Velocity [dps]", fontsize=12, fontweight='bold')
         plt.grid(True, linestyle='--', alpha=0.7, zorder=0)
