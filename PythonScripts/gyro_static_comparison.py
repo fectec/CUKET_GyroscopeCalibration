@@ -34,6 +34,8 @@ def parse_static_logs(file_list):
         entry = {
             'id': idx + 1,
             'filename': filename,
+            # Store the color index to link back to the legend
+            'color_idx': idx, 
             'x': {},
             'y': {},
             'z': {}
@@ -42,7 +44,6 @@ def parse_static_logs(file_list):
         try:
             with open(filename, 'r') as f:
                 # Read only the top portion (header)
-                # The header ends when "RAW LOG DATA STARTS BELOW" is found
                 for line in f:
                     line = line.strip()
                     
@@ -55,6 +56,9 @@ def parse_static_logs(file_list):
                         axis = parts[0].upper()
                         if axis in ['X', 'Y', 'Z']:
                             try:
+                                # Skip header line
+                                if axis == 'AXIS': continue
+                                
                                 omega_up = float(parts[1])
                                 omega_down = float(parts[2])
                                 bias = float(parts[3])
@@ -78,77 +82,145 @@ def parse_static_logs(file_list):
 
     return parsed_data
 
-def plot_comparison(data):
+def plot_normal(data):
+    """Plots data based on the Test ID (Original Order)."""
     if not data:
         print("No valid data to plot.")
         return
 
-    # Generate distinct colors for each log file
     num_files = len(data)
     colors = cm.rainbow(np.linspace(0, 1, num_files))
     
-    # Create a 3x3 subplot grid
-    # Rows: Axes (X, Y, Z)
-    # Cols: Metrics (Omega Up, Omega Down, Bias)
     fig, axs = plt.subplots(3, 3, figsize=(16, 12))
-    fig.suptitle('Comparison of Gyroscope Static Parameters Across Multiple Tests', fontsize=16, fontweight='bold')
+    fig.suptitle('Comparison of Gyroscope Static Parameters Across Tests', fontsize=16, fontweight='bold')
     
-    # Define column titles - Using raw strings (r'') to fix SyntaxWarning
     cols = [r'$\bar{\omega}_{up}$ [dps]', r'$\bar{\omega}_{down}$ [dps]', r'Bias $b$ [dps]']
     rows = ['X-Axis', 'Y-Axis', 'Z-Axis']
-
-    # Set headers for columns and rows
-    for ax, col in zip(axs[0], cols):
-        ax.set_title(col, fontsize=12, fontweight='bold')
-
-    for ax, row in zip(axs[:,0], rows):
-        # FIXED: Removed size='large' to avoid conflict with fontsize
-        ax.set_ylabel(row, fontsize=12, fontweight='bold', rotation=90)
-
-    # Mapping keys to subplot columns
     metrics = ['up', 'down', 'bias']
     axes_keys = ['x', 'y', 'z']
 
-    # --- PLOTTING LOOP ---
-    for i, axis_key in enumerate(axes_keys):       # Row index (0=X, 1=Y, 2=Z)
-        for j, metric_key in enumerate(metrics):   # Col index (0=Up, 1=Down, 2=Bias)
-            
+    # Set Headers
+    for ax, col in zip(axs[0], cols):
+        ax.set_title(col, fontsize=12, fontweight='bold')
+    for ax, row in zip(axs[:,0], rows):
+        ax.set_ylabel(row, fontsize=12, fontweight='bold', rotation=90)
+
+    # Plotting Loop
+    for i, axis_key in enumerate(axes_keys):       
+        for j, metric_key in enumerate(metrics):   
             current_ax = axs[i, j]
             current_ax.grid(True, linestyle='--', alpha=0.6)
             
-            # Plot each file as a single point
-            for idx, entry in enumerate(data):
+            for entry in data:
                 val = entry[axis_key][metric_key]
                 log_num = entry['id']
+                color = colors[entry['color_idx']]
                 
-                # Scatter point
-                current_ax.scatter(log_num, val, color=colors[idx], s=100, label=f"Test {log_num}" if (i==0 and j==0) else "")
+                current_ax.scatter(log_num, val, color=color, s=100)
                 
-            # Set X-axis integer ticks
             current_ax.set_xticks([d['id'] for d in data])
             current_ax.set_xlabel('Test Log Number')
 
-    # --- LEGEND ---
-    # Create a custom legend for the files
+    # Legend
+    _add_legend(fig, data, colors)
+    plt.subplots_adjust(bottom=0.15, hspace=0.4, wspace=0.3)
+    plt.show()
+
+def plot_sorted(data):
+    """Plots data sorted by the value of the metric (Lowest to Highest)."""
+    if not data:
+        print("No valid data to plot.")
+        return
+
+    num_files = len(data)
+    colors = cm.rainbow(np.linspace(0, 1, num_files))
+    
+    fig, axs = plt.subplots(3, 3, figsize=(16, 12))
+    fig.suptitle('Comparison of Gyroscope Static Parameters Across Tests (Sorted by Value)', fontsize=16, fontweight='bold')
+    
+    cols = [r'$\bar{\omega}_{up}$ [dps]', r'$\bar{\omega}_{down}$ [dps]', r'Bias $b$ [dps]']
+    rows = ['X-Axis', 'Y-Axis', 'Z-Axis']
+    metrics = ['up', 'down', 'bias']
+    axes_keys = ['x', 'y', 'z']
+
+    # Set Headers
+    for ax, col in zip(axs[0], cols):
+        ax.set_title(col, fontsize=12, fontweight='bold')
+    for ax, row in zip(axs[:,0], rows):
+        ax.set_ylabel(row, fontsize=12, fontweight='bold', rotation=90)
+
+    # Plotting Loop
+    for i, axis_key in enumerate(axes_keys):       
+        for j, metric_key in enumerate(metrics):   
+            current_ax = axs[i, j]
+            current_ax.grid(True, linestyle='--', alpha=0.6)
+            
+            # Collect data for this subplot
+            metric_data = []
+            for entry in data:
+                metric_data.append({
+                    'val': entry[axis_key][metric_key],
+                    'color': colors[entry['color_idx']]
+                })
+
+            # Sort by Value
+            metric_data_sorted = sorted(metric_data, key=lambda x: x['val'])
+            x_ranks = list(range(1, len(metric_data_sorted) + 1))
+            
+            # Plot
+            for rank, d in enumerate(metric_data_sorted):
+                 current_ax.scatter(rank + 1, d['val'], color=d['color'], s=100)
+
+            current_ax.set_xticks(x_ranks)
+            current_ax.set_xlabel('Sorted Rank (Low -> High)')
+
+    # Legend
+    _add_legend(fig, data, colors)
+    plt.subplots_adjust(bottom=0.15, hspace=0.4, wspace=0.3)
+    plt.show()
+
+def _add_legend(fig, data, colors):
     legend_elements = []
-    for idx, entry in enumerate(data):
-        legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', label=f"Test {entry['id']}: {entry['filename']}", 
+    # Sort legend by ID for consistency
+    sorted_data_for_legend = sorted(data, key=lambda x: x['id']) 
+    
+    for entry in sorted_data_for_legend:
+        idx = entry['color_idx']
+        legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', 
+                          label=f"Test {entry['id']}: {entry['filename']}", 
                           markerfacecolor=colors[idx], markersize=10))
 
     fig.legend(handles=legend_elements, loc='lower center', ncol=3, bbox_to_anchor=(0.5, 0.01), fontsize=10)
-    
-    # Adjust layout to make room for legend
-    plt.subplots_adjust(bottom=0.15, hspace=0.4, wspace=0.3)
-    
-    plt.show()
 
-if __name__ == "__main__":
+def main():
     print("--- Gyroscope Biases Comparison Tool ---")
     
-    # 1. Parse Data
+    # 1. Parse Data once
     parsed_results = parse_static_logs(LOG_FILES)
     
+    if not parsed_results:
+        print("No valid logs found. Exiting.")
+        return
+
     print(f"Successfully parsed {len(parsed_results)} logs.")
-    
-    # 2. Plot
-    plot_comparison(parsed_results)
+
+    while True:
+        print("\nSelect Plot Mode:")
+        print("1. Normal Order (X-axis = Test ID)")
+        print("2. Sorted by Value (X-axis = Rank Low->High)")
+        print("Q. Quit")
+        
+        choice = input("Enter choice (1/2/Q): ").strip().upper()
+
+        if choice == '1':
+            plot_normal(parsed_results)
+        elif choice == '2':
+            plot_sorted(parsed_results)
+        elif choice == 'Q':
+            print("Exiting.")
+            break
+        else:
+            print("Invalid choice. Please try again.")
+
+if __name__ == "__main__":
+    main()
