@@ -1,0 +1,164 @@
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import numpy as np
+import sys
+import os
+
+# ================= USER CONFIGURATION =================
+
+# List the filenames of the dynamic test logs you want to compare
+# UPDATE THIS LIST with your actual file names
+LOG_FILES = [
+    "TEST1_DYNAMIC.txt",
+    "TEST2_DYNAMIC.txt",
+    "TEST3_DYNAMIC.txt"
+]
+
+# ======================================================
+
+def parse_dynamic_logs(file_list):
+    """
+    Parses the header section of the dynamic test log files.
+    Returns a list of dictionaries containing the extracted data.
+    """
+    parsed_data = []
+
+    for idx, filename in enumerate(file_list):
+        if not os.path.exists(filename):
+            print(f"Warning: File '{filename}' not found. Skipping.")
+            continue
+
+        print(f"Parsing file {idx + 1}: {filename}...")
+        
+        entry = {
+            'id': idx + 1,
+            'filename': filename,
+            'x': {},
+            'y': {},
+            'z': {},
+            'gt': None
+        }
+
+        try:
+            with open(filename, 'r') as f:
+                # Read only the top portion (header)
+                # The header ends when "RAW LOG DATA STARTS BELOW" is found
+                for line in f:
+                    line = line.strip()
+                    
+                    if "RAW LOG DATA" in line:
+                        break
+                    
+                    # Header Format: Axis,Avg_Omega_CW,Avg_Omega_CCW,Scale_Factor_Error,Ground_Truth_DPS
+                    parts = line.split(',')
+                    if len(parts) == 5:
+                        axis = parts[0].upper()
+                        if axis in ['X', 'Y', 'Z']:
+                            try:
+                                avg_cw = float(parts[1])
+                                avg_ccw = float(parts[2])
+                                scale_error = float(parts[3])
+                                gt = float(parts[4])
+                                
+                                entry[axis.lower()] = {
+                                    'cw': avg_cw,
+                                    'ccw': avg_ccw,
+                                    'scale': scale_error
+                                }
+                                # Capture Ground Truth (assuming constant per file)
+                                if entry['gt'] is None:
+                                    entry['gt'] = gt
+                            except ValueError:
+                                continue
+            
+            # Verify we got all axes
+            if entry['x'] and entry['y'] and entry['z']:
+                parsed_data.append(entry)
+            else:
+                print(f"Warning: Incomplete header data in '{filename}'. Skipping.")
+
+        except Exception as e:
+            print(f"Error reading '{filename}': {e}")
+
+    return parsed_data
+
+def plot_comparison(data):
+    if not data:
+        print("No valid data to plot.")
+        return
+
+    # Extract Ground Truth from the first valid log for the Title
+    ref_gt = data[0]['gt'] if data else 0.0
+
+    # Generate distinct colors for each log file
+    num_files = len(data)
+    colors = cm.rainbow(np.linspace(0, 1, num_files))
+    
+    # Create a 3x3 subplot grid
+    # Rows: Axes (X, Y, Z)
+    # Cols: Metrics (Omega CW, Omega CCW, Scale Factor Error)
+    fig, axs = plt.subplots(3, 3, figsize=(16, 12))
+    
+    title_text = f'Comparison of Gyroscope Dynamic Parameters Across Multiple Tests (Target: {ref_gt} dps)'
+    fig.suptitle(title_text, fontsize=16, fontweight='bold')
+    
+    # Define column titles - Using raw strings for LaTeX
+    cols = [r'$\bar{\omega}_{cw}$ [dps]', r'$\bar{\omega}_{ccw}$ [dps]', r'Scale Factor Error $s$']
+    rows = ['X-Axis', 'Y-Axis', 'Z-Axis']
+
+    # Set headers for columns and rows
+    for ax, col in zip(axs[0], cols):
+        ax.set_title(col, fontsize=12, fontweight='bold')
+
+    for ax, row in zip(axs[:,0], rows):
+        ax.set_ylabel(row, fontsize=12, fontweight='bold', rotation=90)
+
+    # Mapping keys to subplot columns
+    metrics = ['cw', 'ccw', 'scale']
+    axes_keys = ['x', 'y', 'z']
+
+    # --- PLOTTING LOOP ---
+    for i, axis_key in enumerate(axes_keys):       # Row index (0=X, 1=Y, 2=Z)
+        for j, metric_key in enumerate(metrics):   # Col index (0=CW, 1=CCW, 2=Scale)
+            
+            current_ax = axs[i, j]
+            current_ax.grid(True, linestyle='--', alpha=0.6)
+            
+            # Plot each file as a single point
+            for idx, entry in enumerate(data):
+                val = entry[axis_key][metric_key]
+                log_num = entry['id']
+                
+                # Scatter point
+                # Only add label to the first subplot (0,0) to avoid legend duplication
+                lbl = f"Test {log_num}" if (i==0 and j==0) else ""
+                current_ax.scatter(log_num, val, color=colors[idx], s=100, label=lbl)
+                
+            # Set X-axis integer ticks
+            current_ax.set_xticks([d['id'] for d in data])
+            current_ax.set_xlabel('Test Log Number')
+
+    # --- LEGEND ---
+    # Create a custom legend for the files
+    legend_elements = []
+    for idx, entry in enumerate(data):
+        legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', label=f"Test {entry['id']}: {entry['filename']}", 
+                          markerfacecolor=colors[idx], markersize=10))
+
+    fig.legend(handles=legend_elements, loc='lower center', ncol=3, bbox_to_anchor=(0.5, 0.01), fontsize=10)
+    
+    # Adjust layout to make room for legend
+    plt.subplots_adjust(bottom=0.15, hspace=0.4, wspace=0.3)
+    
+    plt.show()
+
+if __name__ == "__main__":
+    print("--- Gyroscope Scale Factor Comparison Tool ---")
+    
+    # 1. Parse Data
+    parsed_results = parse_dynamic_logs(LOG_FILES)
+    
+    print(f"Successfully parsed {len(parsed_results)} logs.")
+    
+    # 2. Plot
+    plot_comparison(parsed_results)

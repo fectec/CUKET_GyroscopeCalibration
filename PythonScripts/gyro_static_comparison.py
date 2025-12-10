@@ -7,11 +7,12 @@ import os
 # ================= USER CONFIGURATION =================
 
 # List the filenames of the static test logs you want to compare
-# UPDATE THIS LIST with your actual file names (e.g., TEST1.txt, TEST3.txt)
+# UPDATE THIS LIST with your actual file names
 LOG_FILES = [
-    "TEST1.txt",
-    "TEST2.txt",
-    "TEST3.txt"
+    "TEST1_STATIC.txt",
+    "TEST2_STATIC.txt",
+    "TEST3_STATIC.txt",
+    "TEST4_STATIC.txt"
 ]
 
 # ======================================================
@@ -90,7 +91,7 @@ def plot_comparison(data):
     # Rows: Axes (X, Y, Z)
     # Cols: Metrics (Omega Up, Omega Down, Bias)
     fig, axs = plt.subplots(3, 3, figsize=(16, 12))
-    fig.suptitle('Comparison of Gyroscope Static Parameters across Multiple Tests', fontsize=16, fontweight='bold')
+    fig.suptitle('Comparison of Gyroscope Static Parameters Across Multiple Tests', fontsize=16, fontweight='bold')
     
     # Define column titles - Using raw strings (r'') to fix SyntaxWarning
     cols = [r'$\bar{\omega}_{up}$ [dps]', r'$\bar{\omega}_{down}$ [dps]', r'Bias $b$ [dps]']
