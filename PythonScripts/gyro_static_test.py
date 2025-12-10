@@ -25,7 +25,7 @@ def parse_and_plot():
     
     # 1. Setup Log File
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"gyro_biases_static_test_{timestamp}.txt"
+    filename = f"gyro_static_test_{timestamp}.txt"
     print(f"Logging raw data to: {filename}")
     
     print(f"Connecting to {COM_PORT}...")

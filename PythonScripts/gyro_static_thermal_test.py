@@ -23,7 +23,7 @@ def parse_and_plot():
     
     # 1. Setup Log File
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"gyro_biases_static_thermal_test_{timestamp}.txt"
+    filename = f"gyro_static_thermal_test_{timestamp}.txt"
     print(f"Logging raw data to: {filename}")
     
     print(f"Connecting to {COM_PORT}...")
@@ -31,7 +31,6 @@ def parse_and_plot():
     
     try:
         ser = serial.Serial(COM_PORT, BAUD_RATE, timeout=TIMEOUT)
-        # unbuffered=True is not directly supported in text mode, so we use flush() manually
         log_file = open(filename, "w")
         time.sleep(2) 
         
@@ -46,11 +45,9 @@ def parse_and_plot():
         while True:
             try:
                 raw_line = ser.readline()
-                # Use errors='replace' to avoid crashing on bad bytes, strip whitespace
                 line = raw_line.decode('utf-8', errors='replace').strip()
                 
                 if line:
-                    # Write immediately and flush to ensure data is saved even if script crashes
                     log_file.write(line + "\n")
                     log_file.flush() 
                     
@@ -60,7 +57,6 @@ def parse_and_plot():
                 print("\nUser interrupted logging.")
                 break
             except Exception as e:
-                # print(f"Serial Error: {e}") # Optional: debug serial errors
                 continue 
 
             if not line:
@@ -73,7 +69,6 @@ def parse_and_plot():
 
             if "CYCLE_ID" in line:
                 try:
-                    # Robust splitting: Handle "CYCLE_ID: 1" and "CYCLE_ID:1"
                     parts = line.split(':')
                     if len(parts) > 1:
                         new_cycle_id = int(parts[1].strip())
@@ -95,17 +90,14 @@ def parse_and_plot():
                 try:
                     parts = line.split(',')
                     if len(parts) >= 3:
-                        # Parse Raw values
                         x_raw = int(parts[0])
                         y_raw = int(parts[1])
                         z_raw = int(parts[2])
                         
-                        # Convert to DPS
                         x_dps = x_raw * SENSITIVITY_250DPS
                         y_dps = y_raw * SENSITIVITY_250DPS
                         z_dps = z_raw * SENSITIVITY_250DPS
                         
-                        # Save to current cycle bucket
                         if current_cycle != -1:
                             if current_cycle not in cycle_data:
                                 cycle_data[current_cycle] = {'x': [], 'y': [], 'z': []}
@@ -117,7 +109,6 @@ def parse_and_plot():
                 except ValueError:
                     pass 
 
-        # --- CLEANUP ---
         ser.close()
         log_file.close()
         
@@ -133,7 +124,6 @@ def parse_and_plot():
         results = [] 
 
         for c_id in detected_cycles:
-            # Skip empty cycles
             if not cycle_data[c_id]['x']:
                 print(f"    Warning: Cycle {c_id} has no data. Skipping.")
                 continue
@@ -162,7 +152,6 @@ def parse_and_plot():
             print("No valid data to plot.")
             return
 
-        # --- SORTING ---
         results.sort(key=lambda k: k['temp'])
 
         # --- SAVE PROCESSED DATA TO FILE (PREPEND) ---
@@ -192,13 +181,17 @@ def parse_and_plot():
         z_avgs = [r['avg_z'] for r in results]
 
         plt.figure(figsize=(10, 8))
-        plt.scatter(x_avgs, temps, color='darkblue', s=80, label='X-axis', zorder=3)
-        plt.scatter(y_avgs, temps, color='deepskyblue', s=80, label='Y-axis', zorder=3)
-        plt.scatter(z_avgs, temps, color='purple', s=80, label='Z-axis', zorder=3)
+        
+        # Temperature on X, Averages on Y
+        plt.scatter(temps, x_avgs, color='darkblue', s=80, label='X-axis', zorder=3)
+        plt.scatter(temps, y_avgs, color='deepskyblue', s=80, label='Y-axis', zorder=3)
+        plt.scatter(temps, z_avgs, color='purple', s=80, label='Z-axis', zorder=3)
 
-        plt.title(f"Gyroscope Readings vs Temperature\n(Static Thermal Test)", fontsize=14, fontweight='bold')
-        plt.ylabel("Temperature [°C]", fontsize=12, fontweight='bold')
-        plt.xlabel("Angular Velocity [dps]", fontsize=12, fontweight='bold')
+        plt.title(f"Gyroscope Average Readings vs Temperature\n(Static Thermal Test)", fontsize=14, fontweight='bold')
+        
+        plt.xlabel("Temperature [°C]", fontsize=12, fontweight='bold')
+        plt.ylabel("Angular Velocity [dps]", fontsize=12, fontweight='bold')
+        
         plt.grid(True, linestyle='--', alpha=0.7, zorder=0)
         plt.legend(fontsize=12, shadow=True)
         plt.tight_layout()

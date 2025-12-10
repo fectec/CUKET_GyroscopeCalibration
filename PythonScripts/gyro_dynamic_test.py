@@ -33,7 +33,7 @@ def parse_and_plot():
     
     # 1. Setup Log File
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"gyro_scale_factor_errors_test_{timestamp}.txt"
+    filename = f"gyro_dynamic_test_{timestamp}.txt"
     print(f"Logging raw data to: {filename}")
     print(f"Target Angular Velocity: {TABLE_GROUND_TRUTH_DPS} dps")
     
