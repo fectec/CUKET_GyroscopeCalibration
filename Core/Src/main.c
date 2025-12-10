@@ -56,7 +56,7 @@
 #define L3G4200D_OUT_X_L    			0x28
 
 // Test Configuration
-#define LOG_DURATION_MS                 10000   // 60s cycle
+#define LOG_DURATION_MS                 120000  // 120s (2 min) cycle
 #define SAMPLE_PERIOD_MS                10      // 10ms = 100Hz
 #define TEST_HEADER_MARKER              0xAA55  // Number for data start
 
