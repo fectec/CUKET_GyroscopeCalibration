@@ -200,8 +200,6 @@ Although time-intensive, the soak method ensures the most reliable error charact
 
 <p align="justify"> The code supporting this button functionality is found in the <code>button_logic</code> branch. </p>
 
-<p align="justify"> <strong>NOT DEVELOPED YET Alternative for High-Speed Rotation:</strong> If the rotary table spins too fast to safely press the button, a timer-based routine can be used to log data automatically without physical interaction. This code is found in the <code>timer_logic_rotary</code> branch. </p>
-
 <h3>Firmware Setup</h3>
 
 <p align="justify"> If the NUCLEO-F446RE board has not been programmed, follow these instructions: </p>
@@ -211,14 +209,6 @@ Although time-intensive, the soak method ensures the most reliable error charact
 <li><p align="justify"> <strong>Import Project:</strong> In STM32CubeIDE, go to <strong>File > Open Projects from File System</strong>. Browse to the <code>MO-2_GyroscopeVerification</code> folder. Ensure <em>"Search for nested projects"</em> and <em>"Detect and configure project natures"</em> are checked, then click <strong>Finish</strong>. </p></li>
 <li><p align="justify"> <strong>Flash Firmware:</strong> Connect the board to the PC via USB. Open <code>Core/Src/main.c</code>, then click the <strong>Run</strong> button (Play icon) to compile and upload. </p></li>
 </ol>
-
-<p align="justify"> To switch between the manual button logic and the automatic timer logic, change the active Git branch in your terminal. STM32CubeIDE will automatically update the files. </p>
-
-<p align="justify"> <strong>For Button Logic (Standard):</strong> </p> <pre><code>git checkout button_logic</code></pre>
-
-<p align="justify"> <strong>For Timer Logic (Automatic Rotary Table):</strong> </p> <pre><code>git checkout timer_logic_rotary</code></pre>
-
-<p align="justify"> After checking out the desired branch, return to STM32CubeIDE and click <strong>Run</strong> to program the board. </p>
 
 <p align="justify"> <strong>IMPORTANT:</strong> Before starting a new test, you must erase the previous data from the flash memory. Connect the system to the PC, open a Serial Terminal (like PuTTY or the Arduino Serial Monitor) on the correct COM port, and send the character <strong>'e'</strong>. This clears the memory. Failure to do this will result in corrupted data when reading the new test. </p>
 
@@ -368,43 +358,6 @@ This visual comparison allows for the immediate verification of the calibration 
 </p>
 
 <h3>Gyroscope Biases - Static Thermal Test:</h3>
-
-<p align="justify">
-The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The plotting of the angular velocity  versus temperature is performed by a Python script on the PC.
-</p>
-
-<p align="justify">
-<strong>Prerequisite:</strong> Download the script located at <code>MO-2_GyroscopeVerification/PythonScripts/gyro_static_thermal_test.py</code>. This script is compatible with Windows.
-</p>
-
-<p align="justify"><strong>Execution Steps:</strong></p>
-
-<ol type="1">
-<li><p align="justify"><strong>Configure Firmware:</strong> In STM32CubeIDE, open <code>Core/Src/main.c</code> and modify <code>#define LOG_DURATION_MS</code> to set the log duration <em>T</em> (in milliseconds) for each button press.</p></li>
-<li><p align="justify"><strong>Power Up:</strong> Connect the Battery Pack (E5V) or Power Bank (U5V). If using E5V, turn on the switch. Verify the PCB LED is toggling (blinking), indicating Idle mode. Ensure no USB cables are connected.</p></li>
-<li><p align="justify"><strong>Perform Data Logging:</strong> Place the system inside the thermal chamber as shown in Position 1.</p>
-<p align="center">
-<strong>Position 1</strong><br>
-<img src="https://github.com/user-attachments/assets/66444492-c323-4fbd-a233-f10cddc64c22" alt="Position 1 Alignment"><br><br>
-</p>
-<p>For each temperature point defined in your test plan, execute the following sequence:
-</p>
-<ul>
-<li><strong>Set Temperature:</strong> Configure the thermal chamber to the target temperature and allow sufficient time for it to stabilize (soak time).</li>
-<li><strong>Start Logging:</strong> Press the button on the PCB to start logging. The LED will stop blinking and remain <strong>solid ON</strong>.</li>
-<li><strong>Wait for Completion:</strong> When the logging cycle finishes, the LED will return to blinking.</li>
-<li><strong>Repeat:</strong> Change the chamber temperature to the next point and repeat the steps above.</li>
-</ul>
-</li>
-<li><p align="justify"><strong>Connect to PC:</strong></p>
-<ul>
-<li>If using <strong>E5V</strong>: Keep the batteries connected and switch ON. Connect the USB cable to the PC.</li>
-<li>If using <strong>U5V</strong>: Disconnect the power bank and connect the USB cable to the PC.</li>
-</ul>
-</li>
-<li><p align="justify"><strong>Identify Port:</strong> Open Windows Device Manager and find the COM port number for <strong>STMicroelectronics STLink Virtual COM Port</strong>.</p></li>
-<li><p align="justify"><strong>Run Analysis:</strong> Update the <code>COM_PORT</code> variable in the Python script and run it.</p></li>
-<li><p align="justify"><strong>Results:</strong> After extracting the data, the script will prompt the user in the console to manually input the temperature (°C) corresponding to each recorded cycle. Once completed, it generates a text file containing the logs and a summary of the results, as well as a plot displaying the averaged angular rates for each axis at each temperature point.</p></li></ol>
 
 <h2>References</h2>
 
