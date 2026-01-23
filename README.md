@@ -308,6 +308,8 @@ The NUCLEO-F446RE logs raw gyroscope data to the flash memory. The calculation o
 <li><p align="justify"><strong>Results:</strong> The script generates a text file containing the logs and a summary of the results, as well as a plot displaying the averaged angular rates (<img src="https://math.vercel.app?from=\bar{\omega}_{i^{cw}}" /> and <img src="https://math.vercel.app?from=\bar{\omega}_{i^{ccw}}" />) per axis, along with the calculated scale factor errors.</p></li>
 </ol>
 
+<img width="1536" height="850" alt="gyro_dynamic_test_10dps_1" src="https://github.com/user-attachments/assets/b4264b01-5523-4677-9cf8-4e0db0825d4c" />
+
 <h3>Gyroscope Calibration</h3>
 
 <p align="justify">
@@ -481,6 +483,9 @@ Two scripts manage the data: the first retrieves the raw logs from each run, and
     </p>
   </li>
 </ol>
+
+<img width="1536" height="850" alt="gyro_thermal_test_comparison" src="https://github.com/user-attachments/assets/7f8abaf9-ad3e-48db-99f9-706db1fb201e" />
+
 
 <h3>Gyroscope Noise Characterization: Allan Variance</h3>
 
