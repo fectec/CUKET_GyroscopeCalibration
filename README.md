@@ -14,9 +14,11 @@ This repository documents the implementation of a gyroscope verification system 
 Gyroscopes are inertial sensors used to measure the angular velocity of the platform to which they are attached [2].
 </p>
 
-<p align="justify">
-For the MO-2 mission, one primary objective is to observe the satellite's condition and reflect status data—specifically angular velocity—into a game designed to inspire interest in space among a wider audience. The selected sensor for this task, chosen for its flight heritage, is the MEMS gyroscope L3G4200D. Selecting a sensor without a proven space record would necessitate complex and costly qualification procedures, such as radiation testing.
-</p>
+<li>
+    <p align="justify">
+      <strong>Power Up & Cabling:</strong> Since standard Li-Ion batteries and power banks cannot safely operate under the extreme temperature ranges of the thermal chamber, the system must be powered using an external bench power supply via the <strong>E5V</strong> input. Place the system inside the chamber and route both the power supply cables and the extended logging control button cable through the chamber's side access hole, ensuring the controls and power source remain outside. Once the cables are routed, strictly seal the access hole with the provided plug (<em>"tapón"</em>) to ensure thermal isolation. Connect the power cables to the external supply set to <strong>5V</strong>, turn it on, and verify that the PCB LED is toggling (blinking), which indicates the system is in Idle mode. Ensure no USB cables are connected.
+    </p>
+  </li>
 
 <p align="justify">
 MEMS gyroscopes are widely adopted in CubeSat missions due to their compact size, low power consumption, cost-effectiveness, and precision. However, their accuracy tends to degrade over time as a result of  combined errors, including noise, biases, drift, and scale factor instability. If left uncorrected, these deterministic errors accumulate, leading to progressively larger discrepancies in position and orientation estimates, a phenomenon well-documented in previous missions utilizing MEMS sensors for Attitude Determination and Control Systems (ADCS) [3].
@@ -358,6 +360,172 @@ This visual comparison allows for the immediate verification of the calibration 
 </p>
 
 <h3>Gyroscope Biases - Static Thermal Test:</h3>
+
+<p align="justify">
+This procedure determines the dependence of gyroscope bias on temperature by calculating the bias values at five distinct points: -20°C, 0°C, 20°C, 40°C, and 60°C. Since reorienting the system inside the thermal chamber during a test is not feasible, the standard static method is adapted into three separate thermal runs. Each run maintains a single static position while sweeping through the full temperature range.
+</p>
+
+<p align="justify">
+The process begins with the system in <strong>Position 1</strong>, executing the thermal sweep, after which the data is retrieved and the flash memory is erased. This sequence is repeated identically for <strong>Position 2</strong> and <strong>Position 3</strong>, ensuring the memory is cleared between runs.</p>
+
+<p align="justify">
+Two scripts manage the data: the first retrieves the raw logs from each run, and the second stitches these three files together. By grouping the data from all three positions corresponding to the same temperature point, the script calculates the final bias for each of the five thermal steps.
+</p>
+
+<p align="justify">
+<strong>Prerequisite:</strong> Download the retrieval script (<code>gyro_static_thermal_test_position.py</code>) and the calculation script (<code>gyro_static_thermal_test_biases.py</code>).</p>
+
+<p align="justify"><strong>Execution Steps:</strong></p>
+
+<ol type="1">
+  <li>
+    <p align="justify">
+      <strong>Configure Firmware:</strong> In STM32CubeIDE, open <code>Core/Src/main.c</code> and modify <code>#define LOG_DURATION_MS</code> to set the log duration <em>T</em> (in milliseconds) for each temperature point. Ensure the duration is sufficient to capture stable data.
+    </p>
+  </li>
+
+<li>
+    <p align="justify">
+      <strong>Power Up & Cabling:</strong> To ensure safety and operational stability across the full temperature range, lithium-ion batteries and portable power banks are strictly prohibited inside the thermal chamber. Instead, the system must be powered using a bench power supply placed inside the chamber alongside the device. Route the power supply's AC power cable and the extended logging control button cable through the chamber's side access port, ensuring that the system can be powered and controlled from the outside. Once the cables are routed, seal the access port to ensure thermal isolation. Connect the power supply to an external outlet, configure the output to 5V, and verify that the PCB LED is toggling to confirm the system is in Idle mode.
+    </p>
+</li>
+
+<li>
+    <p align="justify">
+      <strong>Perform Thermal Run 1 (Position 1):</strong>
+    </p>
+    <ul>
+      <li>
+        <p align="justify">
+          <strong>Verify Orientation:</strong> Ensure that the system was placed in <strong>Position 1</strong> during the initial setup.
+        </p>
+      </li>
+      <li>
+        <p align="justify">
+          <strong>Temperature Sweep:</strong> For each temperature target (-20°, 0°, 20°, 40°, 60°): Set the chamber temperature and allow the system to stabilize for the designated <strong>Soak Time</strong> (typically <strong>15 minutes</strong>). Once stable, press the external button to log data (LED Solid ON). Wait for the LED to return to blinking before proceeding to the next temperature.
+        </p>
+      </li>
+      <li>
+        <p align="justify">
+          <strong>Retrieve Data:</strong> Once the sweep is complete, turn off the power supply and remove the system from the chamber. Connect it to the PC, run the retrieval script, and save the log file with a unique name corresponding to Position 1.
+        </p>
+      </li>
+      <li>
+        <p align="justify">
+          <strong>Erase Memory:</strong> Send the <strong>'e'</strong> command via the Serial Terminal to clear the flash memory. <strong>This step is critical to prevent data overlap.</strong>
+        </p>
+      </li>
+    </ul>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Perform Thermal Run 2 (Position 2):</strong>
+    </p>
+    <ul>
+      <li>
+        <p align="justify">
+          <strong>Reorient & Setup:</strong> Place the system back inside the thermal chamber, this time oriented in <strong>Position 2</strong>. Route the cables, seal the access port, and power up the system as before.
+        </p>
+      </li>
+      <li>
+        <p align="justify">
+          <strong>Temperature Sweep:</strong> Repeat the logging process for all temperature targets, adhering to the 15-minute Soak Time for each step.
+        </p>
+      </li>
+      <li>
+        <p align="justify">
+          <strong>Retrieve Data:</strong> Remove the system, retrieve the data, and save the log file with a unique name corresponding to Position 2.
+        </p>
+      </li>
+      <li>
+        <p align="justify">
+          <strong>Erase Memory:</strong> Clear the flash memory using the <strong>'e'</strong> command.
+        </p>
+      </li>
+    </ul>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Perform Thermal Run 3 (Position 3):</strong>
+    </p>
+    <ul>
+      <li>
+        <p align="justify">
+          <strong>Reorient & Setup:</strong> Place the system back inside the thermal chamber, oriented in <strong>Position 3</strong>. Route the cables, seal the access port, and power up.
+        </p>
+      </li>
+      <li>
+        <p align="justify">
+          <strong>Temperature Sweep:</strong> Repeat the logging process for all temperature targets, adhering to the 15-minute Soak Time for each step.
+        </p>
+      </li>
+      <li>
+        <p align="justify">
+          <strong>Retrieve Data:</strong> Remove the system, retrieve the data, and save the final log file corresponding to Position 3.
+        </p>
+      </li>
+    </ul>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Run Analysis:</strong> Open <code>gyro_static_thermal_test_biases.py</code>. Update the <code>LOG_FILES</code> list to include the three text files. Run the script and map the files to their positions when prompted.
+    </p>
+  </li>
+
+  <li>
+    <p align="justify">
+      <strong>Results:</strong> The script generates a summary text file and a plot illustrating the bias drift for the X, Y, and Z axes across the tested range.
+    </p>
+  </li>
+</ol>
+
+<h3>Gyroscope Noise Characterization: Allan Variance</h3>
+
+<p align="justify">
+To fully characterize the sensor's stochastic errors, an Allan Variance analysis is performed. This long-duration static test allows for the determination of <strong>Angle Random Walk (ARW)</strong> and <strong>Bias Instability</strong>.
+</p>
+
+<p align="justify">
+<strong>Prerequisite:</strong> Download the script located at <code>MO-2_GyroscopeVerification/PythonScripts/gyro_ARW_bias_instability.py</code>.
+</p>
+
+<p align="justify"><strong>Execution Steps:</strong></p>
+
+<ol type="1">
+  <li>
+    <p align="justify">
+      <strong>Configure Firmware:</strong> In <code>Core/Src/main.c</code>, set <code>#define LOG_DURATION_MS</code> to <strong>14400000</strong> (4 Hours).
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      <strong>Power Up:</strong> Use the Battery Pack (E5V) to ensure stable power for the 4-hour duration.
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      <strong>Data Logging:</strong> Place the system in a vibration-free environment. Press the button to start the long logging cycle.
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      <strong>Retrieve Data:</strong> Connect to the PC and send the <strong>'r'</strong> command. Note that retrieving 4 hours of data may take several minutes.
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      <strong>Run Analysis:</strong> Run the Python script. It will parse the long log, calculate the Allan Deviation, and automatically identify the ARW and the Bias Instability.
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      <strong>Results:</strong> The script outputs the calculated noise parameters and generates a plot of the Allan Deviation.
+    </p>
+  </li>
+</ol>
 
 <h2>References</h2>
 
