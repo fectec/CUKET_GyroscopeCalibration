@@ -14,12 +14,6 @@ This repository documents the implementation of a gyroscope verification system 
 Gyroscopes are inertial sensors used to measure the angular velocity of the platform to which they are attached [2].
 </p>
 
-<li>
-    <p align="justify">
-      <strong>Power Up & Cabling:</strong> Since standard Li-Ion batteries and power banks cannot safely operate under the extreme temperature ranges of the thermal chamber, the system must be powered using an external bench power supply via the <strong>E5V</strong> input. Place the system inside the chamber and route both the power supply cables and the extended logging control button cable through the chamber's side access hole, ensuring the controls and power source remain outside. Once the cables are routed, strictly seal the access hole with the provided plug (<em>"tapón"</em>) to ensure thermal isolation. Connect the power cables to the external supply set to <strong>5V</strong>, turn it on, and verify that the PCB LED is toggling (blinking), which indicates the system is in Idle mode. Ensure no USB cables are connected.
-    </p>
-  </li>
-
 <p align="justify">
 MEMS gyroscopes are widely adopted in CubeSat missions due to their compact size, low power consumption, cost-effectiveness, and precision. However, their accuracy tends to degrade over time as a result of  combined errors, including noise, biases, drift, and scale factor instability. If left uncorrected, these deterministic errors accumulate, leading to progressively larger discrepancies in position and orientation estimates, a phenomenon well-documented in previous missions utilizing MEMS sensors for Attitude Determination and Control Systems (ADCS) [3].
 </p>
