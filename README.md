@@ -486,18 +486,56 @@ Two scripts manage the data: the first retrieves the raw logs from each run, and
 
 <img width="1536" height="850" alt="gyro_thermal_test_comparison" src="https://github.com/user-attachments/assets/7f8abaf9-ad3e-48db-99f9-706db1fb201e" />
 
-
-<h3>Gyroscope Noise Characterization: Allan Variance</h3>
+<h2>Gyroscope Noise and Allan Deviation</h2>
 
 <p align="justify">
-To fully characterize the sensor's stochastic errors, an Allan Variance analysis is performed. This long-duration static test allows for the determination of <strong>Angle Random Walk (ARW)</strong> and <strong>Bias Instability</strong>.
+Gyroscopes are critical sensors in aerospace applications, such as rockets and satellites. To create accurate simulations, engineers must precisely model the sensors. This requires characterizing stochastic errors (noise) that cannot be removed by simple calibration [5].
+</p>
+
+<h3>Angle Random Walk (ARW)</h3>
+
+<p align="justify">
+Angle Random Walk describes the high-frequency "white noise" in the gyroscope's rate output. The concept is based on a "random walk" mathematical model, analogous to flipping a coin to decide whether to take a step forward or backward. Even with equal probability, after many flips, your position will drift randomly from the starting line. Since gyroscope rate measurements are integrated over time to compute angles, this white noise causes the calculated angle to take random steps, accumulating drift from sample to sample [5].
+</p>
+
+<h3>Bias Instability</h3>
+
+<p align="justify">
+While a gyroscope has a constant "turn-on bias" (the offset reading when stationary), this bias is not truly static—it wanders gradually over time. Bias Instability quantifies this low-frequency drift. It represents the limit of the sensor's stability; meaning that after a certain duration, averaging the data no longer improves accuracy but instead includes more error due to this drift. This is arguably the most critical parameter for sensor fusion algorithms (like Kalman Filters), which typically assume bias is constant; if instability is high, the filter may fail to track the bias correctly [5].
+</p>
+
+<h3>Allan Deviation</h3>
+
+<p align="justify">
+To quantify these parameters, we use the <strong>Allan Variance</strong>. Originally derived to measure the noise characteristics and frequency stability of clock oscillators, this method is used to separate random noise processes from systematic errors (such as temperature effects) [5].
 </p>
 
 <p align="justify">
-<strong>Prerequisite:</strong> Download the script located at <code>MO-2_GyroscopeVerification/PythonScripts/gyro_ARW_bias_instability.py</code>.
+The result is the <strong>Allan Deviation</strong> (<img src="https://latex.codecogs.com/svg.latex?\sigma" alt="sigma"/>), which is simply the square root of the Allan Variance. It is visualized as a plot on a log-log scale. The x-axis represents the <strong>averaging time</strong> (<img src="https://latex.codecogs.com/svg.latex?\tau" alt="tau"/>) in seconds, and the y-axis represents the deviation in degrees per second. By analyzing the slope and shape of this curve, we can extract the specific values for ARW and Bias Instability using the formulas below [5].
 </p>
 
-<p align="justify"><strong>Execution Steps:</strong></p>
+<h3>Calculating Noise Parameters</h3>
+
+<p align="justify">
+<strong>1. Angle Random Walk:</strong> On the plot, this appears as a slope of <strong>-0.5</strong>. It is calculated by taking the deviation value at <img src="https://latex.codecogs.com/svg.latex?\tau=1" alt="tau=1"/> second and converting it to standard units [5]:
+</p>
+
+<p align="center">
+  <img src="https://latex.codecogs.com/svg.latex?ARW%20=%20\sigma(1)%20\frac{\text{deg}}{\text{s}}%20\times%2060%20\frac{\text{s}}{\sqrt{\text{hr}}}" alt="ARW Formula" />
+</p>
+
+<p align="justify">
+<strong>2. Bias Instability:</strong> On the plot, this corresponds to the <strong>local minimum</strong> (the "valley" or flat region) of the curve. It is calculated using the minimum deviation value (<img src="https://latex.codecogs.com/svg.latex?\sigma_{min}" alt="sigma_min"/>) and the standard constant 0.664 from IEEE Standard 952-1997 [5]:
+</p>
+
+<p align="center">
+  <img src="https://latex.codecogs.com/svg.latex?B_I%20=%20\sigma_{min}%20\frac{\text{deg}}{\text{s}}%20\times%20\frac{1}{0.664}%20\times%203600%20\frac{\text{s}}{\text{hr}}" alt="Bias Instability Formula" />
+</p>
+
+<h3>Prerequisite:</h3>
+ Download the script located at <code>MO-2_GyroscopeVerification/PythonScripts/gyro_ARW_bias_instability.py</code>.
+
+<h3>Execution Steps:</h3>
 
 <ol type="1">
   <li>
@@ -539,4 +577,4 @@ To fully characterize the sensor's stochastic errors, an Allan Variance analysis
 <li><p align="justify">Z. Yampolsky and I. Klein, "Data-Driven Gyroscope Calibration," <em>arXiv preprint arXiv:2410.12485</em>, 2024. [Online]. Available: <a href="https://arxiv.org/pdf/2410.12485">https://arxiv.org/pdf/2410.12485</a></p></li>
 <li><p align="justify">D. Royo Serrano, "Development of a calibration procedure for gyroscopes in CubeSat missions," Master's thesis, Luleå University of Technology, Luleå, Sweden, 2021. [Online]. Available: <a href="https://www.diva-portal.org/smash/get/diva2:1537570/FULLTEXT01.pdf">https://www.diva-portal.org/smash/get/diva2:1537570/FULLTEXT01.pdf</a></p></li>
 <li><p align="justify">X. Niu, Y. Li, H. Zhang, Q. Wang, and Y. Ban, "Fast Thermal Calibration of Low-Grade Inertial Sensors and Inertial Measurement Units," <em>Sensors</em>, vol. 13, no. 9, pp. 12192-12217, 2013. [Online]. Available: <a href="https://doi.org/10.3390/s130912192">https://doi.org/10.3390/s130912192</a></p></li>
-</ol>
+<li><p align="justify">M. Wrona, "Gyro Noise and Allan Deviation + IMU Example," <em>Michael Wrona's Blog</em>, May 9, 2021. [Online]. Available: <a href="https://mwrona.com/posts/gyro-noise-analysis/">https://mwrona.com/posts/gyro-noise-analysis/</a></p></li>
