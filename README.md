@@ -355,6 +355,8 @@ This procedure applies the calculated biases and scale factor errors to a select
 This visual comparison allows for the immediate verification of the calibration performance across different test positions or rotations.
 </p>
 
+<img width="1536" height="754" alt="Cycle_1_-_Calibration_Verification - Thermal" src="https://github.com/user-attachments/assets/8765f0ad-e43b-48f9-9a05-db9cee0eba8c" />
+
 <h3>Gyroscope Biases - Static Thermal Test:</h3>
 
 <p align="justify">
