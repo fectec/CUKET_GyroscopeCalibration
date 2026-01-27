@@ -191,10 +191,10 @@ def parse_and_process():
     plt.loglog(tau_y, ad_y, 'g-', label='Y Axis')
     plt.loglog(tau_z, ad_z, 'b-', label='Z Axis')
     
-    # Plot -0.5 Slope Reference (ARW)
-    # Just for visual reference, anchored to X ARW
+    # Plot -0.5 Slope Reference (Gaussian White Noise)
+    # Just for visual reference, anchored to X-axis
     ref_sigma_1 = arw_x / 60.0 # Convert back to deg/s for plotting
-    plt.plot([0.1, 10], [ref_sigma_1 * np.sqrt(1/0.1), ref_sigma_1 * np.sqrt(1/10)], 'k--', alpha=0.5, label='Slope -0.5 (White Noise)')
+    plt.plot([0.1, 10], [ref_sigma_1 * np.sqrt(1/0.1), ref_sigma_1 * np.sqrt(1/10)], 'k--', alpha=0.5, label='Slope -0.5 (Gaussian White Noise)')
     
     # Highlight ARW Points (@ tau=1)
     sigma_1_x = arw_x / 60.0
@@ -209,8 +209,7 @@ def parse_and_process():
     plt.plot(p_bi_y[0], p_bi_y[1], 'g^', markersize=10, markeredgecolor='k', zorder=5)
     plt.plot(p_bi_z[0], p_bi_z[1], 'b^', markersize=10, markeredgecolor='k', zorder=5)
 
-    duration_hr = len(gx)*TS/3600
-    plt.title(f'Gyro Allan Deviation\n(Duration: {duration_hr:.2f} hours)', fontsize=14, fontweight='bold')
+    plt.title(f'Gyro Allan Deviation\n', fontsize=14, fontweight='bold')
     plt.xlabel(r'$\tau$ [sec]', fontsize=12)
     plt.ylabel(r'Allan Deviation $\sigma(\tau)$ [deg/s]', fontsize=12)
     plt.grid(True, which="both", ls="-", alpha=0.4)
