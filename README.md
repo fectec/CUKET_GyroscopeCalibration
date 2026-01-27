@@ -556,7 +556,7 @@ It is possible to determine if the sensor exhibits Gaussian white noise. This is
   </li>
   <li>
     <p align="justify">
-      <strong>Retrieve and Analyze:</strong> Once the logging period is complete, connect the board to the PC. Run the Python script. It will first <strong>retrieve</strong> the long data log from the flash memory, and then automatically calculate the Allan Deviation, identifying the ARW and Bias Instability values.
+      <strong>Retrieve and Analyze:</strong> Once the logging period is complete, connect the board to the PC. Run the Python script. It will first retrieve the long data log from the flash memory, and then automatically calculate the Allan Deviation, identifying the ARW and Bias Instability values.
     </p>
   </li>
   <li>
@@ -565,6 +565,10 @@ It is possible to determine if the sensor exhibits Gaussian white noise. This is
     </p>
   </li>
 </ol>
+
+<p align="center">
+  <img  alt="Allan Deviation" src="https://github.com/user-attachments/assets/f2d4664f-0e82-46eb-8a51-be8281a53cdd" />
+</p>
 
 <h2>References</h2>
 
