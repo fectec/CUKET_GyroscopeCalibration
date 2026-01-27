@@ -507,13 +507,19 @@ To quantify these parameters, we use the <strong>Allan Variance</strong>. Origin
 </p>
 
 <p align="justify">
-The result is the <strong>Allan Deviation</strong> (<img src="https://latex.codecogs.com/svg.latex?\sigma" alt="sigma"/>), which is simply the square root of the Allan Variance. It is visualized as a plot on a log-log scale. The x-axis represents the <strong>averaging time</strong> (<img src="https://latex.codecogs.com/svg.latex?\tau" alt="tau"/>) in seconds, and the y-axis represents the deviation in degrees per second. By analyzing the slope and shape of this curve, we can extract the specific values for ARW and Bias Instability using the formulas below [5].
+The result is the <strong>Allan Deviation</strong> (<img src="https://latex.codecogs.com/svg.latex?\sigma" alt="sigma"/>), which is simply the square root of the Allan Variance. It is visualized as a plot on a log-log scale. The x-axis represents the <strong>averaging time</strong> (<img src="https://latex.codecogs.com/svg.latex?\tau" alt="tau"/>) in seconds, and the y-axis represents the deviation in degrees per second. By analyzing the slope and shape of this curve, we can extract the specific values for ARW and Bias Instability [5].
+</p>
+
+<h3>Gaussian White Noise</h3>
+
+<p align="justify">
+It is possible to determine if the sensor exhibits Gaussian white noise. This is verified by analyzing the slope of the Allan Deviation plot. If the slope on the left side of the plot follows a gradient of <strong>-0.5</strong>, the sensor noise is confirmed to be Gaussian white noise. Verifying this characteristic is crucial because many sensor fusion algorithms, such as Kalman Filters, rely on the assumption that state observations (measurements) contain Gaussian white noise [5].
 </p>
 
 <h3>Calculating Noise Parameters</h3>
 
 <p align="justify">
-<strong>1. Angle Random Walk:</strong> On the plot, this appears as a slope of <strong>-0.5</strong>. It is calculated by taking the deviation value at <img src="https://latex.codecogs.com/svg.latex?\tau=1" alt="tau=1"/> second and converting it to standard units [5]:
+<strong>1. Angle Random Walk:</strong> It is calculated by taking the deviation value at <img src="https://latex.codecogs.com/svg.latex?\tau=1" alt="tau=1"/> second and converting it to standard units [5]:
 </p>
 
 <p align="center">
@@ -536,27 +542,21 @@ The result is the <strong>Allan Deviation</strong> (<img src="https://latex.code
 <ol type="1">
   <li>
     <p align="justify">
-      <strong>Configure Firmware:</strong> In <code>Core/Src/main.c</code>, set <code>#define LOG_DURATION_MS</code> to <strong>14400000</strong> (4 Hours).
+      <strong>Configure Firmware:</strong> In <code>Core/Src/main.c</code>, set <code>#define LOG_DURATION_MS</code> to <strong>14400000</strong> (4 Hours). Flash the board with this configuration.
     </p>
   </li>
   <li>
     <p align="justify">
-      <strong>Power Up:</strong> Use the Battery Pack (E5V) to ensure stable power for the 4-hour duration.
+      <strong>Data Logging:</strong> Place the system in a vibration-free environment. <strong>Crucially, the system must be oriented in Position 1</strong> (as shown below). Connect the power source and press the button to start the long logging cycle.
+    </p>
+    <p align="center">
+      <strong>Position 1</strong><br>
+      <img src="https://github.com/user-attachments/assets/ce7d5c47-3d76-469f-8495-888691b38281" alt="Position 1 Alignment"><br><br>
     </p>
   </li>
   <li>
     <p align="justify">
-      <strong>Data Logging:</strong> Place the system in a vibration-free environment. Press the button to start the long logging cycle.
-    </p>
-  </li>
-  <li>
-    <p align="justify">
-      <strong>Retrieve Data:</strong> Connect to the PC and send the <strong>'r'</strong> command. Note that retrieving 4 hours of data may take several minutes.
-    </p>
-  </li>
-  <li>
-    <p align="justify">
-      <strong>Run Analysis:</strong> Run the Python script. It will parse the long log, calculate the Allan Deviation, and automatically identify the ARW and the Bias Instability.
+      <strong>Retrieve and Analyze:</strong> Once the logging period is complete, connect the board to the PC. Run the Python script. It will first <strong>retrieve</strong> the long data log from the flash memory, and then automatically calculate the Allan Deviation, identifying the ARW and Bias Instability values.
     </p>
   </li>
   <li>
